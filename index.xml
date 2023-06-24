@@ -8,6 +8,51 @@
     <language>en-us</language>
     <lastBuildDate>Sat, 24 Jun 2023 00:00:00 +0000</lastBuildDate><atom:link href="https://thottysploity.github.io/index.xml" rel="self" type="application/rss+xml" />
     <item>
+      <title>About</title>
+      <link>https://thottysploity.github.io/about/</link>
+      <pubDate>Sat, 24 Jun 2023 00:00:00 +0000</pubDate>
+      
+      <guid>https://thottysploity.github.io/about/</guid>
+      <description>Hello everyone,
+I&amp;rsquo;m Thanatos, also known as Thottysploity. Currently, I&amp;rsquo;m pursuing a bachelor&amp;rsquo;s degree in Cyber Security. My insatiable curiosity for hacking has led me on a path of exploration and learning. I specialize in exploit development, post-exploitation techniques like lateral movement, active directory exploitation, and firmware exploitation.
+As a security researcher, I&amp;rsquo;m devoted to helping the cyber community defend themselves against malicious hackers driven by financial gain or the desire to cause harm.</description>
+      <content>&lt;p&gt;Hello everyone,&lt;/p&gt;
+&lt;p&gt;I&amp;rsquo;m Thanatos, also known as Thottysploity. Currently, I&amp;rsquo;m pursuing a bachelor&amp;rsquo;s degree in Cyber Security. My insatiable curiosity for hacking has led me on a path of exploration and learning. I specialize in exploit development, post-exploitation techniques like lateral movement, active directory exploitation, and firmware exploitation.&lt;/p&gt;
+&lt;p&gt;As a security researcher, I&amp;rsquo;m devoted to helping the cyber community defend themselves against malicious hackers driven by financial gain or the desire to cause harm. Notably, during my first year as a bachelor&amp;rsquo;s student, I achieved a significant milestone by creating a Proof-of-Concept for a Rust version of Mimikatz, now known as mimikatz-rs.&lt;/p&gt;
+&lt;p&gt;What makes my journey even more remarkable is that I embarked on it at the age of 11, teaching myself everything I know about cybersecurity. From that young age, I&amp;rsquo;ve been driven by self-motivation and a thirst for knowledge.&lt;/p&gt;
+&lt;p&gt;I firmly believe that a strong foundation of self-learning and personal growth is essential in the ever-evolving field of cybersecurity. While pursuing my bachelor&amp;rsquo;s degree, I continuously seek practical experiences and conduct independent research to stay up-to-date with the latest trends and emerging threats.&lt;/p&gt;
+&lt;p&gt;In conclusion, my passion for cybersecurity, which started at a young age and has been entirely self-taught, has shaped me into a dedicated security researcher. I&amp;rsquo;m committed to expanding my knowledge, contributing to the community, and ensuring a safer digital world for all.&lt;/p&gt;
+&lt;h1 id=&#34;certifications&#34;&gt;Certifications&lt;/h1&gt;
+&lt;p&gt;Cisco Certified Network Associate&lt;/p&gt;
+&lt;p&gt;Cisco Network Security Specialist (Certificate of Completion)&lt;/p&gt;
+&lt;p&gt;Ndg-linux-essentials (Cisco)&lt;/p&gt;
+&lt;p&gt;TryHackMe RedTeam Path (Certificate of Completion)&lt;/p&gt;
+&lt;h1 id=&#34;certifications-i-still-want-to-get&#34;&gt;Certifications I still want to get&lt;/h1&gt;
+&lt;p&gt;&lt;a href=&#34;https://www.offsec.com/courses/pen-200/&#34;&gt;Offensive Security Certified Professional (OSCP)&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://www.offsec.com/courses/exp-301/&#34;&gt;Offensive Security Exploit Developer (OSED/EXP-301)&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://institute.sektor7.net/red-team-operator-malware-development-essentials&#34;&gt;Red team operator Malware development (Sektor7)&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;There probably are a few more I missed&lt;/p&gt;
+&lt;h1 id=&#34;languages-ranked-based-on-my-proficiency-from-highest-to-lowest-according-to-my-reading-and-writing-abilities&#34;&gt;Languages ranked based on my proficiency from highest to lowest, according to my reading and writing abilities.&lt;/h1&gt;
+&lt;ul&gt;
+&lt;li&gt;Rust (safe code and unsafe code (ex. windows API, NT calls or libc))&lt;/li&gt;
+&lt;li&gt;C++&lt;/li&gt;
+&lt;li&gt;C&lt;/li&gt;
+&lt;li&gt;C#&lt;/li&gt;
+&lt;li&gt;PHP&lt;/li&gt;
+&lt;li&gt;Python&lt;/li&gt;
+&lt;li&gt;SQL&lt;/li&gt;
+&lt;li&gt;HTML&lt;/li&gt;
+&lt;li&gt;CSS&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;education&#34;&gt;Education&lt;/h1&gt;
+&lt;ul&gt;
+&lt;li&gt;Bachelors of Science in Cyber Security, Infrastructure and Management (2020-2024)&lt;/li&gt;
+&lt;li&gt;System administration degree (2017-2020)&lt;/li&gt;
+&lt;/ul&gt;
+</content>
+    </item>
+    
+    <item>
       <title>My Test Post</title>
       <link>https://thottysploity.github.io/posts/test/</link>
       <pubDate>Sat, 24 Jun 2023 00:00:00 +0000</pubDate>
@@ -15,17 +60,6 @@
       <guid>https://thottysploity.github.io/posts/test/</guid>
       <description>Text goes here</description>
       <content>&lt;p&gt;Text goes here&lt;/p&gt;
-</content>
-    </item>
-    
-    <item>
-      <title>About</title>
-      <link>https://thottysploity.github.io/about/</link>
-      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
-      <guid>https://thottysploity.github.io/about/</guid>
-      <description>This is the content of the About page.</description>
-      <content>&lt;p&gt;This is the content of the About page.&lt;/p&gt;
 </content>
     </item>
     
