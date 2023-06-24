@@ -8,13 +8,358 @@
     <language>en-us</language>
     <lastBuildDate>Sat, 24 Jun 2023 00:00:00 +0000</lastBuildDate><atom:link href="https://thottysploity.github.io/posts/index.xml" rel="self" type="application/rss+xml" />
     <item>
-      <title>My Test Post</title>
-      <link>https://thottysploity.github.io/posts/test/</link>
+      <title>Obtaining the latest decrypted firmware version for DIR-842</title>
+      <link>https://thottysploity.github.io/posts/dir-842/</link>
       <pubDate>Sat, 24 Jun 2023 00:00:00 +0000</pubDate>
       
-      <guid>https://thottysploity.github.io/posts/test/</guid>
-      <description>Text goes here</description>
-      <content>&lt;p&gt;Text goes here&lt;/p&gt;
+      <guid>https://thottysploity.github.io/posts/dir-842/</guid>
+      <description>1 Why DIR-842 and why D-LINK I hold no specific animosity towards, nor particular fascination with, D-LINK products. However, I&amp;rsquo;ve chosen to explore the firmware of D-LINK as a form of amusement. IoT devices, in general, are often known for their vulnerabilities. My intention is to potentially discover intriguing findings that can expand my knowledge while providing an enjoyable pastime during my free hours.
+2 Three common firmware release scenarios There are three common scenarios associated with firmware releases, particularly in the case of routers.</description>
+      <content>&lt;h1 id=&#34;1-why-dir-842-and-why-d-link&#34;&gt;&lt;code&gt;1&lt;/code&gt; Why DIR-842 and why D-LINK&lt;/h1&gt;
+&lt;p&gt;I hold no specific animosity towards, nor particular fascination with, D-LINK products. However, I&amp;rsquo;ve chosen to explore the firmware of D-LINK as a form of amusement. IoT devices, in general, are often known for their vulnerabilities. My intention is to potentially discover intriguing findings that can expand my knowledge while providing an enjoyable pastime during my free hours.&lt;/p&gt;
+&lt;h1 id=&#34;2-three-common-firmware-release-scenarios&#34;&gt;&lt;code&gt;2&lt;/code&gt; Three common firmware release scenarios&lt;/h1&gt;
+&lt;p&gt;There are three common scenarios associated with firmware releases, particularly in the case of routers. When encountering an encrypted firmware, it is highly likely that the firmware&amp;rsquo;s release cycle falls into one of the following three scenarios.&lt;/p&gt;
+&lt;p&gt;Now, let&amp;rsquo;s discuss the process of decrypting a firmware release. The procedure is straightforward: we revert to a previous firmware release. Essentially, a device needs to flash a valid firmware version in order to operate properly. An encrypted firmware version is considered invalid and would render the device dysfunctional. Therefore, the firmware must be decrypted before it can be flashed onto the device.&lt;/p&gt;
+&lt;p&gt;One way to accomplish this is by acquiring the product in question, connecting to its console, and exploring for a firmware decryption program. However, since I am broke, I will be downloading the firmware directly from the vendor.&lt;/p&gt;
+&lt;h2 id=&#34;21-scenario-1&#34;&gt;&lt;code&gt;2.1&lt;/code&gt; Scenario 1&lt;/h2&gt;
+&lt;p&gt;Initially, when the firmware was initially shipped, it was completely unencrypted. However, as the updates were introduced, a decryption routine was implemented to facilitate future firmware updates. Therefore, all subsequent firmware releases are encrypted.&lt;/p&gt;
+
+  &lt;figure class=&#34;center&#34; &gt;
+    &lt;img src=&#34;https://thottysploity.github.io/img/scenario1.png&#34;  alt=&#34;scenario1&#34;   style=&#34;border-radius: 8px;&#34;  /&gt;
+    
+      &lt;figcaption class=&#34;right&#34; &gt;scenario1&lt;/figcaption&gt;
+    
+  &lt;/figure&gt;
+
+
+&lt;h2 id=&#34;22-scenario-2&#34;&gt;&lt;code&gt;2.2&lt;/code&gt; Scenario 2&lt;/h2&gt;
+&lt;p&gt;The device firmware is encrypted in the original release. The vendor however changed the encryption scheme and released an unencrypted transition version.&lt;/p&gt;
+
+  &lt;figure class=&#34;center&#34; &gt;
+    &lt;img src=&#34;https://thottysploity.github.io/img/scenario2.png&#34;  alt=&#34;scenario1&#34;   style=&#34;border-radius: 8px;&#34;  /&gt;
+    
+      &lt;figcaption class=&#34;right&#34; &gt;scenario2&lt;/figcaption&gt;
+    
+  &lt;/figure&gt;
+
+
+&lt;p&gt;Similar to scenario 1, we obtain the decryption routine from v1.2 and apply this to v1.3. The release notes usually contain helpful information regarding the version the user has to upgrade to before upgrading to the new firmware.&lt;/p&gt;
+&lt;h2 id=&#34;23-scenario-3&#34;&gt;&lt;code&gt;2.3&lt;/code&gt; Scenario 3&lt;/h2&gt;
+&lt;p&gt;The device firmware is encrypted in the original release. However the vendor decided to change the encryption scheme in newer firmware versions.&lt;/p&gt;
+
+  &lt;figure class=&#34;center&#34; &gt;
+    &lt;img src=&#34;https://thottysploity.github.io/img/scenario3.png&#34;  alt=&#34;scenario1&#34;   style=&#34;border-radius: 8px;&#34;  /&gt;
+    
+      &lt;figcaption class=&#34;right&#34; &gt;scenario3&lt;/figcaption&gt;
+    
+  &lt;/figure&gt;
+
+
+&lt;p&gt;In this scenario, acquiring the decryption routine poses a challenge without a straightforward solution. You have two options available: 1) acquire the device from the vendor and directly extract the unencrypted firmware from the hardware, or 2) engage in further analysis of the firmware, aiming to overcome the encryption and gain access.&lt;/p&gt;
+&lt;h1 id=&#34;3-firmware-from-vendor&#34;&gt;&lt;code&gt;3&lt;/code&gt; Firmware from vendor&lt;/h1&gt;
+&lt;p&gt;You can find a lot of firmwares just by googling, name of product + firmware. Through this method I found the firmware page for the &lt;a href=&#34;https://support.dlink.com/ProductInfo.aspx?m=DIR-842&#34;&gt;AC12000 Wireless router&lt;/a&gt;.
+The site offers six different firmware versions and we start at the lowest possible version. We could&amp;rsquo;ve started at the highest possible version and worked our way down the version ladder, trying to extract everything and stopping at the one which actually extracts. But as highlighted in the previous three possible scenario&amp;rsquo;s I just start at the bottom and work my way up so I do not miss any important detail.&lt;/p&gt;
+&lt;h1 id=&#34;31-reversing-the-vendor-gotten-firmware&#34;&gt;&lt;code&gt;3.1&lt;/code&gt; Reversing the vendor gotten firmware&lt;/h1&gt;
+&lt;p&gt;Highlighted in red is the lowest possible firmware that D-LINK has available for DIR-842. We download this and get to reversing.&lt;/p&gt;
+
+  &lt;figure class=&#34;center&#34; &gt;
+    &lt;img src=&#34;https://thottysploity.github.io/img/firmware1.png&#34;  alt=&#34;3.00B18&#34;   style=&#34;border-radius: 8px;&#34;  /&gt;
+    
+      &lt;figcaption class=&#34;right&#34; &gt;3.00B18&lt;/figcaption&gt;
+    
+  &lt;/figure&gt;
+
+
+&lt;h2 id=&#34;311-firmware-v10-300b18&#34;&gt;&lt;code&gt;3.1.1&lt;/code&gt; Firmware v1.0 (3.00B18)&lt;/h2&gt;
+&lt;p&gt;The VM I will be using comes equipped with binwalk and ghidra. Within the VM, I have installed both binwalk and Ghidra. Ghidra is a free and open source reverse engineering tool developed by the NSA and Binwalk serves as a useful utility for extracting embedded files and executable code from a specified binary image.&lt;/p&gt;
+
+
+
+  &lt;div class=&#34;collapsable-code&#34;&gt;
+    &lt;input id=&#34;1&#34; type=&#34;checkbox&#34;  /&gt;
+    &lt;label for=&#34;1&#34;&gt;
+      &lt;span class=&#34;collapsable-code__language&#34;&gt;bash&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__title&#34;&gt;binwalk firmware v1.0&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__toggle&#34; data-label-expand=&#34;△&#34; data-label-collapse=&#34;▽&#34;&gt;&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;pre class=&#34;language-bash&#34; &gt;&lt;code&gt;
+user@user-virtual-machine:~/Desktop/DIR-842/firmware_3.00B18$ ls
+firmware.bin
+user@user-virtual-machine:~/Desktop/DIR-842/firmware_3.00B18$ binwalk -eM firmware.bin 
+
+Scan Time:     2023-06-24 07:39:49
+Target File:   /home/user/Desktop/DIR-842/firmware_3.00B18/firmware.bin
+MD5 Checksum:  815ab88500a14ea7871356a490b80ca3
+Signatures:    411
+
+DECIMAL       HEXADECIMAL     DESCRIPTION
+--------------------------------------------------------------------------------
+0             0x0             DLOB firmware header, boot partition: &amp;#34;dev=/dev/mtdblock/5&amp;#34;
+112           0x70            uImage header, header size: 64 bytes, header CRC: 0x6A7785EB, created: 2017-05-19 16:57:27, image size: 1226247 bytes, Data Address: 0x80060000, Entry Point: 0x80060000, data CRC: 0xCD5C9222, OS: Linux, CPU: MIPS, image type: Multi-File Image, compression type: lzma, image name: &amp;#34;MIPS Seattle Linux-3.3.8&amp;#34;
+184           0xB8            LZMA compressed data, properties: 0x6D, dictionary size: 8388608 bytes, uncompressed size: 3616252 bytes
+1245296       0x130070        PackImg section delimiter tag, little endian size: 15765760 bytes; big endian size: 9564160 bytes
+
+&lt;/code&gt;&lt;/pre&gt;
+  &lt;/div&gt;
+
+
+&lt;p&gt;The output of binwalk tells us that the firmware was not encrypted, otherwise it would have outputted nothing or something along the lines of &amp;ldquo;Encrypted&amp;rdquo;. The entropy of a file also gives a pointer to if the file has been encrypted or not. I encourage you to google how file entropy works :)
+Nothing notable has come up from reversing this firmware version and thus I decided to move onto the next firmware version (3.01B05).&lt;/p&gt;
+&lt;h2 id=&#34;312-firmware-v11-301b05&#34;&gt;3.1.2 Firmware v1.1 (3.01B05)&lt;/h2&gt;
+&lt;p&gt;The way of reversing firmware 3.01B05 takes the same steps as 3.00B18, namely just downloading it from the vendor site and trying to extract it using binwalk -eM.&lt;/p&gt;
+
+
+
+  &lt;div class=&#34;collapsable-code&#34;&gt;
+    &lt;input id=&#34;2&#34; type=&#34;checkbox&#34;  /&gt;
+    &lt;label for=&#34;2&#34;&gt;
+      &lt;span class=&#34;collapsable-code__language&#34;&gt;bash&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__title&#34;&gt;binwalk firmware v1.1&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__toggle&#34; data-label-expand=&#34;△&#34; data-label-collapse=&#34;▽&#34;&gt;&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;pre class=&#34;language-bash&#34; &gt;&lt;code&gt;
+user@user-virtual-machine:~/Desktop/DIR-842/firmware_3.01B05$ ls
+DIR-842C1_FW301b05.bin
+user@user-virtual-machine:~/Desktop/DIR-842/firmware_3.01B05$ binwalk -eM DIR-842C1_FW301b05.bin 
+
+Scan Time:     2023-06-24 07:55:46
+Target File:   /home/user/Desktop/DIR-842/firmware_3.01B05/DIR-842C1_FW301b05.bin
+MD5 Checksum:  cbe17b3fe6d3bdfe8123b215d7db39e5
+Signatures:    411
+
+DECIMAL       HEXADECIMAL     DESCRIPTION
+--------------------------------------------------------------------------------
+0             0x0             DLOB firmware header, boot partition: &amp;#34;dev=/dev/mtdblock/5&amp;#34;
+112           0x70            uImage header, header size: 64 bytes, header CRC: 0xFB966859, created: 2017-08-16 08:50:01, image size: 1225530 bytes, Data Address: 0x80060000, Entry Point: 0x80060000, data CRC: 0xC35F7959, OS: Linux, CPU: MIPS, image type: Multi-File Image, compression type: lzma, image name: &amp;#34;MIPS Seattle Linux-3.3.8&amp;#34;
+184           0xB8            LZMA compressed data, properties: 0x6D, dictionary size: 8388608 bytes, uncompressed size: 3616196 bytes
+&lt;/code&gt;&lt;/pre&gt;
+  &lt;/div&gt;
+
+
+&lt;p&gt;As we can see in the output of binwalk, this firmware is also not encrypted and we can extract it and walk through it. However since our goal is to get the most recent version we keep moving forward. No major findings concerning an encryption/decryption scheme have been found in this firmware.&lt;/p&gt;
+&lt;h2 id=&#34;313-firmware-v20-310b05&#34;&gt;3.1.3 Firmware v2.0 (3.10B05)&lt;/h2&gt;
+&lt;p&gt;One noticeable aspect (which I hope grabs your attention as well) is the version update. We transitioned from versions 3.00 and 3.01 to version 3.10, suggesting the likelihood of significant modifications in this release. Upon downloading this version, we obtain two files: &lt;code&gt;DIR842C1_FW310b05.bin&lt;/code&gt; and &lt;code&gt;DIR842C1_FW302b03_middle.bin&lt;/code&gt;.
+
+  &lt;figure class=&#34;center&#34; &gt;
+    &lt;img src=&#34;https://thottysploity.github.io/img/firmware_version_change.png&#34;  alt=&#34;firmware V2&#34;   style=&#34;border-radius: 8px;&#34;  /&gt;
+    
+      &lt;figcaption class=&#34;right&#34; &gt;firmware V2&lt;/figcaption&gt;
+    
+  &lt;/figure&gt;
+
+&lt;/p&gt;
+&lt;p&gt;Now we see &lt;code&gt;DIR842C1_FW302b03_middle.bin&lt;/code&gt; we can assume that this is the unencrypted firmware version that holds the decryption scheme for all the future firmware versions. All that is left to do is extract the data from this firmware.&lt;/p&gt;
+
+
+
+  &lt;div class=&#34;collapsable-code&#34;&gt;
+    &lt;input id=&#34;3&#34; type=&#34;checkbox&#34;  /&gt;
+    &lt;label for=&#34;3&#34;&gt;
+      &lt;span class=&#34;collapsable-code__language&#34;&gt;bash&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__title&#34;&gt;binwalk firmware v2.0&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__toggle&#34; data-label-expand=&#34;△&#34; data-label-collapse=&#34;▽&#34;&gt;&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;pre class=&#34;language-bash&#34; &gt;&lt;code&gt;
+user@user-virtual-machine:~/Desktop/DIR-842/firmware_3.10B05$ binwalk -eM DIR842C1_FW302b03_middle.bin 
+
+Scan Time:     2023-06-24 08:16:57
+Target File:   /home/user/Desktop/DIR-842/firmware_3.10B05/DIR842C1_FW302b03_middle.bin
+MD5 Checksum:  98868352a4913aee2d2da4acd8e1a04e
+Signatures:    411
+
+DECIMAL       HEXADECIMAL     DESCRIPTION
+--------------------------------------------------------------------------------
+0             0x0             DLOB firmware header, boot partition: &amp;#34;dev=/dev/mtdblock/5&amp;#34;
+112           0x70            uImage header, header size: 64 bytes, header CRC: 0xA33A0532, created: 2018-07-02 07:26:57, image size: 1234680 bytes, Data Address: 0x80060000, Entry Point: 0x80060000, data CRC: 0xE2D6A8D0, OS: Linux, CPU: MIPS, image type: Multi-File Image, compression type: lzma, image name: &amp;#34;MIPS Seattle Linux-3.3.8&amp;#34;
+184           0xB8            LZMA compressed data, properties: 0x6D, dictionary size: 8388608 bytes, uncompressed size: 3641936 bytes
+1245296       0x130070        PackImg section delimiter tag, little endian size: 11572736 bytes; big endian size: 9875456 bytes
+&lt;/code&gt;&lt;/pre&gt;
+  &lt;/div&gt;
+
+
+&lt;p&gt;If only there was a way to check if this middle firmware is our holy grail&amp;hellip; remember those release notes? well thank you D-LINK because they tell you exactly what you need to do. Here is the example of the latest firmware version &lt;code&gt;3.13B05&lt;/code&gt;.&lt;/p&gt;
+
+&lt;img src=&#34;https://thottysploity.github.io/img/release-notes.png&#34;  alt=&#34;release-notes&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;They quite literally tell you; the firmware v3.13 must be upgraded from the transitional version of firmware v3.02b03_middle. Now our job is, figuring out how this middle firmware can decrypt future firmware versions. Not too hard right?&lt;/p&gt;
+&lt;p&gt;Firstly, mainly because I&amp;rsquo;m lazy, we find the difference between the middle firmware and the unencrypted firmware from v1.0. This way we can see what was added in this firmware image.
+
+
+
+  &lt;div class=&#34;collapsable-code&#34;&gt;
+    &lt;input id=&#34;4&#34; type=&#34;checkbox&#34;  /&gt;
+    &lt;label for=&#34;4&#34;&gt;
+      &lt;span class=&#34;collapsable-code__language&#34;&gt;bash&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__title&#34;&gt;finding the needle in the haystack&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__toggle&#34; data-label-expand=&#34;△&#34; data-label-collapse=&#34;▽&#34;&gt;&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;pre class=&#34;language-bash&#34; &gt;&lt;code&gt;
+user@user-virtual-machine:~/Desktop/DIR-842/firmware_3.10B05$ diff -qr _DIR842C1_FW302b03_middle.bin.extracted _DIR-842C1_FW301b05.bin.extracted | grep &amp;#34;Only in&amp;#34;
+...
+`Only in _DIR842C1_FW302b03_middle.bin.extracted/squashfs-root/usr/sbin: encimg`
+...
+&lt;/code&gt;&lt;/pre&gt;
+  &lt;/div&gt;
+
+&lt;/p&gt;
+&lt;p&gt;The diff command returns a lot of entries, we only loop through the &amp;ldquo;Only In&amp;rdquo; so we only return the results which are in the middle firmware. When spitting through all the entries one catches my eye &lt;code&gt;encimg&lt;/code&gt; which stands for &lt;code&gt;encryptimage&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Now, what happends if we want to binwalk over an encrypted version of: 3.13B05? Lets try!&lt;/p&gt;
+
+
+
+  &lt;div class=&#34;collapsable-code&#34;&gt;
+    &lt;input id=&#34;5&#34; type=&#34;checkbox&#34;  /&gt;
+    &lt;label for=&#34;5&#34;&gt;
+      &lt;span class=&#34;collapsable-code__language&#34;&gt;bash&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__title&#34;&gt;binwalking over encrypted firmware&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__toggle&#34; data-label-expand=&#34;△&#34; data-label-collapse=&#34;▽&#34;&gt;&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;pre class=&#34;language-bash&#34; &gt;&lt;code&gt;
+user@user-virtual-machine:~/Desktop/DIR-842/firmware_3.13B05$ ls
+DIR842C1_FW313WWb05.bin
+user@user-virtual-machine:~/Desktop/DIR-842/firmware_3.13B05$ binwalk -eM DIR842C1_FW313WWb05.bin 
+
+Scan Time:     2023-06-24 08:31:18
+Target File:   /home/user/Desktop/DIR-842/firmware_3.13B05/DIR842C1_FW313WWb05.bin
+MD5 Checksum:  ae141c12535cae08e49e4876410ebb9d
+Signatures:    411
+
+DECIMAL       HEXADECIMAL     DESCRIPTION
+--------------------------------------------------------------------------------
+
+user@user-virtual-machine:~/Desktop/DIR-842/firmware_3.13B05$ 
+&lt;/code&gt;&lt;/pre&gt;
+  &lt;/div&gt;
+
+
+&lt;p&gt;As you can see, we get no output. We already expected this since this firmware is encrypted. So let&amp;rsquo;s decrypt it and extract it!&lt;/p&gt;
+&lt;p&gt;We think that &lt;code&gt;_DIR842C1_FW302b03_middle.bin.extracted/squashfs-root/usr/sbin/encimg&lt;/code&gt; is the binary responsible for encrypting/decrypting the image, so let&amp;rsquo;s start here.
+When googling around a bit for encimg, openwrt (mentioned in references) explains: key/iv can be dumped by calling strings on the encimg binary found in the filesystem. Further aiding to the feeling that encimg is responsible for encryption and decryption.
+When executing a &lt;code&gt;file encimg&lt;/code&gt; we get the following output: &lt;code&gt;encimg: ELF 32-bit MSB executable, MIPS, MIPS32 rel2 version 1 (SYSV), dynamically linked, interpreter /lib/ld-uClibc.so.0, not stripped&lt;/code&gt;
+Since my system is not MIPS based, we can do a qemu trick (as referenced in zerodayinitiative source).&lt;/p&gt;
+&lt;p&gt;First we copy the firmware we want to decrypt to the /usr/sbin folder where the encimg is also present, this makes decrypting so much easier:&lt;/p&gt;
+
+
+
+  &lt;div class=&#34;collapsable-code&#34;&gt;
+    &lt;input id=&#34;6&#34; type=&#34;checkbox&#34;  /&gt;
+    &lt;label for=&#34;6&#34;&gt;
+      &lt;span class=&#34;collapsable-code__language&#34;&gt;bash&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__title&#34;&gt;Copying target firmware over&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__toggle&#34; data-label-expand=&#34;△&#34; data-label-collapse=&#34;▽&#34;&gt;&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;pre class=&#34;language-bash&#34; &gt;&lt;code&gt;
+user@user-virtual-machine:~/Desktop/DIR-842/firmware_3.10B05/_DIR842C1_FW302b03_middle.bin.extracted/squashfs-root$ cp /home/user/Desktop/DIR-842/firmware_3.13B05/DIR842C1_FW313WWb05.bin /home/user/Desktop/DIR-842/firmware_3.10B05/_DIR842C1_FW302b03_middle.bin.extracted/squashfs-root/usr/sbin/firmware.bin
+&lt;/code&gt;&lt;/pre&gt;
+  &lt;/div&gt;
+
+
+
+
+
+  &lt;div class=&#34;collapsable-code&#34;&gt;
+    &lt;input id=&#34;7&#34; type=&#34;checkbox&#34;  /&gt;
+    &lt;label for=&#34;7&#34;&gt;
+      &lt;span class=&#34;collapsable-code__language&#34;&gt;bash&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__title&#34;&gt;emulating MIPSEL&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__toggle&#34; data-label-expand=&#34;△&#34; data-label-collapse=&#34;▽&#34;&gt;&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;pre class=&#34;language-bash&#34; &gt;&lt;code&gt;
+user@user-virtual-machine:~/Desktop/DIR-842/firmware_3.10B05/_DIR842C1_FW302b03_middle.bin.extracted/squashfs-root$ cp /usr/bin/qemu-mipsel-static ./usr/sbin/
+user@user-virtual-machine:~/Desktop/DIR-842/firmware_3.10B05/_DIR842C1_FW302b03_middle.bin.extracted/squashfs-root$ sudo chroot . /bin/sh
+&lt;/code&gt;&lt;/pre&gt;
+  &lt;/div&gt;
+
+
+&lt;p&gt;Once in the busybox shell, you might still need to move to the right folder (for this instance /usr/sbin)
+Once there we can execute the encimg file and see the following options:
+
+
+
+  &lt;div class=&#34;collapsable-code&#34;&gt;
+    &lt;input id=&#34;8&#34; type=&#34;checkbox&#34;  /&gt;
+    &lt;label for=&#34;8&#34;&gt;
+      &lt;span class=&#34;collapsable-code__language&#34;&gt;bash&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__title&#34;&gt;encimg&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__toggle&#34; data-label-expand=&#34;△&#34; data-label-collapse=&#34;▽&#34;&gt;&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;pre class=&#34;language-bash&#34; &gt;&lt;code&gt;
+./encimg
+no signature specified!
+Usage: encimg {OPTIONS}
+   -h                      : show this message.
+   -v                      : Verbose mode.
+   -i {input image file}   : input image file.
+   -e                      : encode file.
+   -d                      : decode file.
+   -s                      : signature.
+&lt;/code&gt;&lt;/pre&gt;
+  &lt;/div&gt;
+
+&lt;/p&gt;
+&lt;p&gt;The signature that this needs is found at: &lt;code&gt;/home/user/Desktop/DIR-842/firmware_3.10B05/_DIR842C1_FW302b03_middle.bin.extracted/squashfs-root/etc/config/fw_sign&lt;/code&gt; (firmware signature) which is: &lt;code&gt;wrgac65_dlink.2015_dir842&lt;/code&gt;&lt;/p&gt;
+
+
+
+  &lt;div class=&#34;collapsable-code&#34;&gt;
+    &lt;input id=&#34;9&#34; type=&#34;checkbox&#34;  /&gt;
+    &lt;label for=&#34;9&#34;&gt;
+      &lt;span class=&#34;collapsable-code__language&#34;&gt;bash&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__title&#34;&gt;encimg decrypting&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__toggle&#34; data-label-expand=&#34;△&#34; data-label-collapse=&#34;▽&#34;&gt;&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;pre class=&#34;language-bash&#34; &gt;&lt;code&gt;
+./encimg -d -i DIR842C1_FW313WWb05.bin -s wrgac65_dlink.2015_dir842
+The file length of DIR842C1_FW313WWb05.bin is 11280544
+&lt;/code&gt;&lt;/pre&gt;
+  &lt;/div&gt;
+
+
+&lt;p&gt;The encimg does not print out if it was successful, it only does &amp;ldquo;the file length&amp;rdquo;.
+Once the encimg has ran it&amp;rsquo;s course, we can copy the now overwritten, but decrypted image back and binwalk it.&lt;/p&gt;
+
+
+
+  &lt;div class=&#34;collapsable-code&#34;&gt;
+    &lt;input id=&#34;10&#34; type=&#34;checkbox&#34;  /&gt;
+    &lt;label for=&#34;10&#34;&gt;
+      &lt;span class=&#34;collapsable-code__language&#34;&gt;bash&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__title&#34;&gt;binwalking decrypted firmware image&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__toggle&#34; data-label-expand=&#34;△&#34; data-label-collapse=&#34;▽&#34;&gt;&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;pre class=&#34;language-bash&#34; &gt;&lt;code&gt;
+user@user-virtual-machine:~/Desktop/DIR-842/firmware_3.10B05/_DIR842C1_FW302b03_middle.bin.extracted/squashfs-root/usr/sbin$ cp DIR842C1_FW313WWb05.bin ~/Desktop/DIR-842/firmware_3.13B05/firmware_decrypted.bin
+user@user-virtual-machine:~/Desktop/DIR-842/firmware_3.13B05$ ls
+DIR842C1_FW313WWb05.bin  firmware_decrypted.bin
+user@user-virtual-machine:~/Desktop/DIR-842/firmware_3.13B05$ binwalk -eM firmware_decrypted.bin 
+
+Scan Time:     2023-06-24 08:52:19
+Target File:   /home/user/Desktop/DIR-842/firmware_3.13B05/firmware_decrypted.bin
+MD5 Checksum:  c40930278051bbf66f24a657676dd5b4
+Signatures:    411
+
+DECIMAL       HEXADECIMAL     DESCRIPTION
+--------------------------------------------------------------------------------
+0             0x0             DLOB firmware header, boot partition: &amp;#34;dev=/dev/mtdblock/5&amp;#34;
+112           0x70            uImage header, header size: 64 bytes, header CRC: 0xA5A9FEC, created: 2019-09-10 02:41:50, image size: 1234827 bytes, Data Address: 0x80060000, Entry Point: 0x80060000, data CRC: 0xAAFF08AD, OS: Linux, CPU: MIPS, image type: Multi-File Image, compression type: lzma, image name: &amp;#34;MIPS Seattle Linux-3.3.8&amp;#34;
+184           0xB8            LZMA compressed data, properties: 0x6D, dictionary size: 8388608 bytes, uncompressed size: 3641936 bytes
+1245296       0x130070        PackImg section delimiter tag, little endian size: 2136320 bytes; big endian size: 10035200 bytes
+&lt;/code&gt;&lt;/pre&gt;
+  &lt;/div&gt;
+
+
+&lt;p&gt;As we can now see, we can binwalk over the decrypted image of the newest DIR-842 firmware for the AC12000 Wireless Router.&lt;/p&gt;
+&lt;h1 id=&#34;4-conclusion&#34;&gt;&lt;code&gt;4&lt;/code&gt; Conclusion&lt;/h1&gt;
+&lt;p&gt;Reversing this firmware was a fun practice, when we look back at the whole firmware release cycle we can conclude the following:
+Version 3.00 and 3.01 were completely unencrypted and had no decryption scheme in it&amp;rsquo;s firmware. When coming towards firmware 3.10 we saw a big change.
+Firmware 3.10 was unencrypted but held the decryption scheme for all future firmwares.&lt;/p&gt;
+&lt;h1 id=&#34;5-references&#34;&gt;&lt;code&gt;5&lt;/code&gt; References&lt;/h1&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://www.zerodayinitiative.com/blog/2020/2/6/mindshare-dealing-with-encrypted-router-firmware&#34;&gt;https://www.zerodayinitiative.com/blog/2020/2/6/mindshare-dealing-with-encrypted-router-firmware&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://www.kali.org/tools/binwalk/&#34;&gt;https://www.kali.org/tools/binwalk/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://openwrt.org/inbox/toh/d-link/dir-x1860_a1&#34;&gt;https://openwrt.org/inbox/toh/d-link/dir-x1860_a1&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
 </content>
     </item>
     
