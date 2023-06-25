@@ -2,16 +2,19 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
+    <loc>https://thottysploity.github.io/posts/strings/</loc>
+    <lastmod>2023-06-25T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://thottysploity.github.io/posts/</loc>
+    <lastmod>2023-06-25T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://thottysploity.github.io/</loc>
+    <lastmod>2023-06-25T00:00:00+00:00</lastmod>
+  </url><url>
     <loc>https://thottysploity.github.io/about/</loc>
     <lastmod>2023-06-24T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://thottysploity.github.io/posts/dir-842/</loc>
-    <lastmod>2023-06-24T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://thottysploity.github.io/posts/</loc>
-    <lastmod>2023-06-24T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://thottysploity.github.io/</loc>
     <lastmod>2023-06-24T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://thottysploity.github.io/categories/</loc>
