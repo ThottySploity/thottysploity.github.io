@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>Masquerading Process Environment Block (PEB) using Rust :: Terminal</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="This article delves into the intricate technique of masquerading the process environment block within one&#39;s own process, ingeniously making it indistinguishable from explorer.exe. The primary objective of this study is to present a comprehensive Proof-of-Concept (PoC) developed in the Rust programming language. Through this PoC, the article effectively demonstrates the seamless transformation of the process into an authentic explorer.exe instance when examined using a debugger." />
+<meta name="keywords" content="" />
+
+  <meta name="robots" content="noodp" />
+
+<link rel="canonical" href="/posts/masqpeb/" />
+
+
+
+
+
+
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/styles.css">
+
+
+
+
+
+
+
+  <link rel="shortcut icon" href="/img/theme-colors/orange.png">
+  <link rel="apple-touch-icon" href="/img/theme-colors/orange.png">
+
+
+
+<meta name="twitter:card" content="summary" />
+
+  
+    <meta name="twitter:site" content="" />
+  
+    <meta name="twitter:creator" content="" />
+
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Masquerading Process Environment Block (PEB) using Rust">
+<meta property="og:description" content="This article delves into the intricate technique of masquerading the process environment block within one&#39;s own process, ingeniously making it indistinguishable from explorer.exe. The primary objective of this study is to present a comprehensive Proof-of-Concept (PoC) developed in the Rust programming language. Through this PoC, the article effectively demonstrates the seamless transformation of the process into an authentic explorer.exe instance when examined using a debugger." />
+<meta property="og:url" content="/posts/masqpeb/" />
+<meta property="og:site_name" content="Terminal" />
+
+  
+    <meta property="og:image" content="/img/favicon/orange.png">
+  
+
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+
+
+  <meta property="article:published_time" content="2023-07-20 00:00:00 &#43;0000 UTC" />
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body class="orange">
+
+
+<div class="container center headings--one-size">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    ThottySploity
+  </div>
+</a>
+
+    </div>
+    
+      <ul class="menu menu--mobile">
+  <li class="menu__trigger">Menu&nbsp;▾</li>
+  <li>
+    <ul class="menu__dropdown">
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+      
+    </ul>
+  </li>
+</ul>
+
+    
+    
+  </div>
+  
+    <nav class="navigation-menu">
+  <ul class="navigation-menu__inner menu--desktop">
+    
+      
+        
+          <li><a href="/about" >About</a></li>
+        
+      
+      
+    
+  </ul>
+</nav>
+
+  
+</header>
+
+
+  <div class="content">
+    
+<article class="post">
+  <h1 class="post-title">
+    <a href="/posts/masqpeb/">Masquerading Process Environment Block (PEB) using Rust</a>
+  </h1>
+  <div class="post-meta"><time class="post-date">2023-07-20</time></div>
+
+  
+  
+
+
+  
+
+  <div class="post-content"><div>
+        <h1 id="1-why"><code>1</code> Why?<a href="#1-why" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
+<p>In the realm of cybersecurity, adversaries often employ masquerading techniques to cloak their programs, making them appear genuine or harmless to both users and security tools. This deceptive strategy is purposefully employed to elude detection and evade defensive measures.</p>
+<h1 id="2-what-is-the-process-environment-block-peb"><code>2</code> What is the Process Environment Block (PEB)<a href="#2-what-is-the-process-environment-block-peb" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
+<p>The Process Environment Block (PEB) holds essential process information for the current running process. Comprising nineteen entries, it serves as a user-mode representation of the process, possessing the highest-level knowledge in kernel mode and the lowest-level understanding in user mode. Within the PEB lies valuable data concerning the running process, such as whether it is being debugged, the loaded modules, and the command line used to initiate the process.</p>
+
+<img src="/img/peb-structure.png"  alt="PEB Structure"  class="center"  style="border-radius: 8px;"    />
+
+
+<h1 id="21-why-is-the-peb-structure-interesting"><code>2.1</code> Why is the PEB Structure interesting?<a href="#21-why-is-the-peb-structure-interesting" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
+<p>The PEB structure holds a significant allure for both malware developers and Red teamers. Its manipulability from userland allows us to obscure crucial information about our process, including the loaded modules, execution path, executable, command line arguments, and even whether our process is under debugging. This makes it a valuable resource for crafting stealthy and evasive techniques.</p>
+<h1 id="3-what-makes-our-process-different-from-explorerexe"><code>3</code> What makes our process different from explorer.exe?<a href="#3-what-makes-our-process-different-from-explorerexe" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
+<p>To find out what makes our process different to explorer.exe we will have to compare the two. There are four places across two different structures within the PEB that define what kind of process it is, namely:</p>
+<ul>
+<li><code>PEB_LDR_DATA</code></li>
+<li><code>RTL_USER_PROCESS_PARAMETERS</code></li>
+</ul>
+<h1 id="31-peb_ldr_data-and-rtl_user_process_parameters-of-explorerexe"><code>3.1</code> PEB_LDR_DATA and RTL_USER_PROCESS_PARAMETERS of explorer.exe<a href="#31-peb_ldr_data-and-rtl_user_process_parameters-of-explorerexe" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
+<p>I will be using WinDbg (downloaded from the Windows Store) to inspect the PEB structure of the explorer.exe process.</p>
+<p>When loading explorer.exe into WinDbg, we can see the PEB structure using the following command: <code>dt _peb @$peb</code>
+
+<img src="/img/peb-explorer.png"  alt="PEB Structure"  class="center"  style="border-radius: 8px;"    />
+
+</p>
+<p>From the debugger we can see that:</p>
+<ul>
+<li><code>_PEB_LDR_DATA</code> is located at: <code>0x00007ff94471c4c0</code></li>
+<li><code>RTL_USER_PROCESS_PARAMETERS</code> is located  at <code>0x00000000006627c0</code></li>
+</ul>
+<p>This is however just the start, when inspecting the <code>RTL_USER_PROCESS_PARAMETERS</code> we can see the <code>ImagePathName</code> and the <code>CommandLine</code>:
+
+<img src="/img/rtl_user_parameters.png"  alt="rtl_user_process_parameters"  class="center"  style="border-radius: 8px;"    />
+
+</p>
+<p>Now we need to loop through the modules that are held by <code>PEB_LDR_DATA</code>. The reason for this will become clear in a minute. When doing <code>dt _PEB_LDR_DATA 0x00007ff94471c4c0</code> we can see a table entry list, the one we&rsquo;re after is called <code>InLoadOrderModuleList</code>.
+
+<img src="/img/ldr_table.png"  alt="ldr_table"  class="center"  style="border-radius: 8px;"    />
+
+</p>
+<p>We take the first entry of the ldr data table and check it&rsquo;s <code>FullDllName</code> and <code>BaseDllName</code>, wow look it&rsquo;s <code>explorer.exe</code>
+
+<img src="/img/table_ldr_entry.png"  alt="LDR_DATA"  class="center"  style="border-radius: 8px;"    />
+
+</p>
+<p>Now we know how the explorer.exe process is supposed to look, from a debugger angle. But the question remains, how does the PEB of an other process look? Let&rsquo;s take <code>notepad.exe</code> as an example.
+
+<img src="/img/notepad_rtl.png"  alt="LDR_DATA"  class="center"  style="border-radius: 8px;"    />
+
+
+We can see the following information:</p>
+<ul>
+<li><code>ImagePathName</code> is C:\Windows\notepad.exe</li>
+<li><code>CommandLine</code> is C:\Windows\notepad.exe</li>
+<li><code>FullDllName</code> is C:\Windows\notepad.exe</li>
+<li><code>BaseDllName</code> is notepad.exe</li>
+</ul>
+<p>If we want to successfully masquerade our PEB we will have to overwrite those four variables. But how does this Rust code look? well.. here is the code :P</p>
+
+
+
+  <div class="collapsable-code">
+    <input id="1" type="checkbox" checked />
+    <label for="1">
+      <span class="collapsable-code__language">rust</span>
+      <span class="collapsable-code__title">Masquerade Peb</span>
+      <span class="collapsable-code__toggle" data-label-expand="Show" data-label-collapse="Hide"></span>
+    </label>
+    <pre class="language-rust" ><code>
+use ntapi::ntldr::LDR_DATA_TABLE_ENTRY;
+use ntapi::ntpebteb::PEB;
+use ntapi::ntrtl::{RtlEnterCriticalSection, RtlInitUnicodeString, RtlLeaveCriticalSection};
+use ntapi::winapi::shared::ntdef::UNICODE_STRING;
+
+use std::arch::asm;
+use std::env;
+
+/// Gets a pointer to the Thread Environment Block (TEB)
+#[cfg(target_arch = &#34;x86&#34;)]
+pub unsafe fn get_teb() -&gt; *mut ntapi::ntpebteb::TEB {
+    let teb: *mut ntapi::ntpebteb::TEB;
+    asm!(&#34;mov {teb}, fs:[0x18]&#34;, teb = out(reg) teb);
+    teb
+}
+
+/// Get a pointer to the Thread Environment Block (TEB)
+#[cfg(target_arch = &#34;x86_64&#34;)]
+pub unsafe fn get_teb() -&gt; *mut ntapi::ntpebteb::TEB {
+    let teb: *mut ntapi::ntpebteb::TEB;
+    asm!(&#34;mov {teb}, gs:[0x30]&#34;, teb = out(reg) teb);
+    teb
+}
+
+/// Get a pointer to the Process Environment Block (PEB)
+pub unsafe fn get_peb() -&gt; *mut PEB {
+    let teb = get_teb();
+    let peb = (*teb).ProcessEnvironmentBlock;
+    peb
+}
+
+// Convert the PWCH to a String
+unsafe fn convert_mut_u16_to_string(ptr: *mut u16) -&gt; String {
+    if ptr.is_null() {
+        return &#34;failed&#34;.to_string();
+    }
+
+    let mut len = 0;
+    while *ptr.offset(len) != 0 {
+        len &#43;= 1;
+    }
+
+    let slice = std::slice::from_raw_parts(ptr, len as usize);
+
+    let utf8_bytes: Vec&lt;u8&gt; = slice
+        .iter()
+        .flat_map(|&amp;c| std::char::from_u32(c as u32).map(|ch| ch.to_string().into_bytes()))
+        .flatten()
+        .collect();
+
+    match String::from_utf8(utf8_bytes) {
+        Ok(s) =&gt; s.to_string(),
+        Err(_) =&gt; &#34;failed&#34;.to_string(),
+    }
+}
+
+// Convert a String to a PWCH
+unsafe fn convert_string_to_mut_u16(s: String) -&gt; *mut u16 {
+    let utf16_data: Vec&lt;u16&gt; = s.encode_utf16().collect();
+    let len = utf16_data.len();
+    let ptr =
+        std::alloc::alloc(std::alloc::Layout::from_size_align(len * 2, 2).unwrap()) as *mut u16;
+
+    std::ptr::copy_nonoverlapping(utf16_data.as_ptr(), ptr, len);
+
+    *ptr.add(len) = 0;
+
+    ptr
+}
+
+fn main() {
+    unsafe {
+        let peb = get_peb();
+
+        let windows_explorer = convert_string_to_mut_u16(&#34;C:\\Windows\\explorer.exe&#34;.to_string());
+        let explorer = convert_string_to_mut_u16(&#34;explorer.exe&#34;.to_string());
+
+        println!(&#34;Masquerading ImagePathName and CommandLine&#34;);
+
+        RtlInitUnicodeString(&amp;mut (*(*peb).ProcessParameters).ImagePathName as *mut UNICODE_STRING, windows_explorer);
+        RtlInitUnicodeString(&amp;mut (*(*peb).ProcessParameters).CommandLine as *mut UNICODE_STRING, windows_explorer);
+
+        println!(&#34;Preparing to masquerade FullDllName and BaseDllName&#34;);
+
+        RtlEnterCriticalSection((*peb).FastPebLock);
+
+        let mut module_list = (*(*peb).Ldr).InLoadOrderModuleList.Flink as *mut LDR_DATA_TABLE_ENTRY;
+        println!(&#34;Traversing all modules&#34;);
+        while !(*module_list).DllBase.is_null() {
+            let current_exe_path = get_current_exe();
+            let utf8_name = convert_mut_u16_to_string((*module_list).FullDllName.Buffer);
+
+            if utf8_name == current_exe_path {
+                println!(&#34;Masquerading FullDllName and BaseDllName&#34;);
+                RtlInitUnicodeString(&amp;mut (*module_list).FullDllName as *mut UNICODE_STRING, windows_explorer);
+                RtlInitUnicodeString(&amp;mut (*module_list).BaseDllName as *mut UNICODE_STRING, explorer);
+            }
+
+            module_list = (*module_list).InLoadOrderLinks.Flink as *mut LDR_DATA_TABLE_ENTRY;
+        }
+
+        println!(&#34;Masqueraded PEB&#34;);
+        RtlLeaveCriticalSection((*peb).FastPebLock);
+    }
+}
+
+fn get_current_exe() -&gt; String {
+    match env::current_exe() {
+        Ok(exe_path) =&gt; exe_path.display().to_string(),
+        Err(_) =&gt; return &#34;failed&#34;.to_string(),
+    }
+}
+
+</code></pre>
+  </div>
+
+
+<p>When we run this code within our debugger and look at the PEB when it&rsquo;s ran it&rsquo;s course we get the following output:
+
+<img src="/img/masqueraded.png"  alt="ldr_table"  class="center"  style="border-radius: 8px;"    />
+
+
+And thus have successfully masqueraded our process' PEB to look exactly like explorer.exe</p>
+<p>The full code is also available here: <a href="https://github.com/ThottySploity/masqueradepeb-rs">Github</a></p>
+<h1 id="conclusion">Conclusion<a href="#conclusion" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
+<p>Masquerading PEB is essential for staying stealthy and evading defenses. As demonstrated, it is not hard to implement and it also was kinda fun to do :)</p>
+<h1 id="references">References<a href="#references" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
+<ul>
+<li><a href="https://attack.mitre.org/techniques/T1036/">https://attack.mitre.org/techniques/T1036/</a></li>
+<li><a href="https://learn.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-peb">https://learn.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-peb</a></li>
+<li><a href="https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/pebteb/peb/index.htm">https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/pebteb/peb/index.htm</a></li>
+<li><a href="https://malwareandstuff.com/peb-where-magic-is-stored/">https://malwareandstuff.com/peb-where-magic-is-stored/</a></li>
+</ul>
+
+      </div></div>
+
+  
+    
+<div class="pagination">
+    <div class="pagination__title">
+        <span class="pagination__title-h">Read other posts</span>
+        <hr />
+    </div>
+    <div class="pagination__buttons">
+        
+        
+        <span class="button next">
+            <a href="/posts/dir-842/">
+                <span class="button__text">Obtaining the latest decrypted firmware version for DIR-842</span>
+                <span class="button__icon">→</span>
+            </a>
+        </span>
+        
+    </div>
+</div>
+
+  
+
+  
+    
+
+  
+</article>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2023 Powered by <a href="https://gohugo.io">Hugo</a></span>
+    
+      <span>:: <a href="https://github.com/panr/hugo-theme-terminal" target="_blank">Theme</a> made by <a href="https://github.com/panr" target="_blank">panr</a></span>
+      </div>
+  </div>
+</footer>
+
+
+
+
+
+
+<script type="text/javascript" src="/bundle.min.js"></script>
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>
