@@ -263,7 +263,7 @@ Now to not let the driver crash upon itself we need to set a buffer which is nec
 <p>EDRs and AVs do not solely reply on callback functions to determine malicious actions, they can also register to get informed by Event Tracing for Windows, also known as ETW. ETW logs data usage on APIs which the EDR/AV can use to determine if specific actions are considered malicious and consequently block them.</p>
 <h1 id="6-proof-of-concept"><code>6</code> Proof-of-Concept<a href="#6-proof-of-concept" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
 <p>This Proof-of-Concept shows the usage of disabling protection providers using kernel notify routine patching and etw threat disabling. It achieves this by cross referencing every driver that has a registered kernel notify routine with a set list of AV/EDR providers, when a match has been found it will null out the callback for this driver. Disabling ETW Threat provider is done by switching a bit from ENABLED (1) to DISABLED (0).</p>
-<p>The complete code can be found here: <!-- raw HTML omitted --></p>
+<p>The complete code can be found here: <a href="https://github.com/ThottySploity/echoac-edr-poc">Github</a></p>
 <p>The following code sets up the initial connection with the EchoDrv:</p>
 
 
