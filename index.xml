@@ -1,12 +1,191 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Terminal</title>
+    <title>Thotty</title>
     <link>/</link>
-    <description>Recent content on Terminal</description>
+    <description>Recent content on Thotty</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 28 Sep 2023 00:00:00 +0000</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sat, 06 Jan 2024 00:00:00 +0000</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>How a threat actor moves laterally through a network</title>
+      <link>/posts/lateralmovement/</link>
+      <pubDate>Sat, 06 Jan 2024 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/lateralmovement/</guid>
+      <description>1 What is Lateral Movement? Lateral movement refers to the actions and techniques employed by threat actors to advance further within a network. Another term that is used for this is pivoting, however there is a difference between lateral movment and pivoting where the key difference lies in the approach. Lateral movement refers to moving across different Active Directory (AD) users while pivoting referes to moving from one system to another.</description>
+      <content>&lt;h1 id=&#34;1-what-is-lateral-movement&#34;&gt;&lt;code&gt;1&lt;/code&gt; What is Lateral Movement?&lt;/h1&gt;
+&lt;p&gt;Lateral movement refers to the actions and techniques employed by threat actors to advance further within a network. Another term that is used for this is pivoting, however there is a difference between lateral movment and pivoting where the key difference lies in the approach. Lateral movement refers to moving across different Active Directory (AD) users while pivoting referes to moving from one system to another. I have found that lateral movement and pivoting are used rather interchangably.&lt;/p&gt;
+&lt;h1 id=&#34;2-how-is-lateral-movement-performed&#34;&gt;&lt;code&gt;2&lt;/code&gt; How is Lateral Movement performed&lt;/h1&gt;
+&lt;p&gt;This chapter will explain how lateral movement is performed&lt;/p&gt;
+&lt;h1 id=&#34;21-domain-admin-vs-local-admin&#34;&gt;&lt;code&gt;2.1&lt;/code&gt; Domain Admin vs Local Admin&lt;/h1&gt;
+&lt;p&gt;When a threat actor gets access to a server or workstation they have a defined goal in mind, getting Domain Admin. Why is the goal to get Domain Admin level access you may ask? well that is a simple answer; the Domain Admin has full control of the whole domain. When an attacker gets access to Domain Admin they can perform any command on any server that they want.&lt;/p&gt;
+&lt;p&gt;There are a couple differences between Local Admins and Domain Admins. The image below shows the differences.&lt;/p&gt;
+
+&lt;img src=&#34;/img/domainvslocal.png&#34;  alt=&#34;Domain Admin vs Local Admin&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;So, where a Local Admin is restricted to just one machine a Domain Admin is not restricted to the same issue. This account can access any server in a domain from a workstation to a domain controller and everything in between.&lt;/p&gt;
+&lt;p&gt;There is also this user on machines called &lt;code&gt;nt authority\system&lt;/code&gt; or &lt;code&gt;SYSTEM&lt;/code&gt; for short. This account has the ultimate permissions on a local machine but has no permissions to access other machines in the network.&lt;/p&gt;
+&lt;h1 id=&#34;22-recon-recon-and-more-recon&#34;&gt;&lt;code&gt;2.2&lt;/code&gt; Recon, Recon and more Recon.&lt;/h1&gt;
+&lt;p&gt;When threat actors drop into an environment they want to know what kind of environment it is. They want to map the network; who are the users in the network, what shares are available, what are the domain controllers (ip address, name, and how many), what servers and workstations are in the network and whom are the domain admins.&lt;/p&gt;
+&lt;p&gt;Threat actors can use custom tools and open-source tools to do recon in a network. Windows itself also delivers tools that can be used to acquire information about a network. When a threat actor uses these tools we call this living-off-the-land, they utilize tools that are already present on the system which makes them harder to detect.&lt;/p&gt;
+&lt;p&gt;A tool that is very useful for reconnaissance is Bloodhound. Bloodhound is a tool that can identify user permissions, sessions, attack paths and hidden relations inside of a Domain. Want to know the best thing about it? everything can be collected with having just domain user permissions. The image below is an overview of Bloodhound that collected information about a Domain. Which resembles the network we&amp;rsquo;re going to be attacking.&lt;/p&gt;
+
+&lt;img src=&#34;/img/Bloodhound.jpg&#34;  alt=&#34;Bloodhound&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;The attack path I have highlighted in red is the attack path I am going to demonstrate. We start all the way on the left at &lt;code&gt;1&lt;/code&gt; and will move laterally through the network all the way to &lt;code&gt;2.1&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;To make this attack path more insightful I have drawn the image below:&lt;/p&gt;
+
+&lt;img src=&#34;/img/overview.png&#34;  alt=&#34;Overview of network&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;We start all the way on the left, on the workstation as the user &lt;code&gt;JevDev&lt;/code&gt;. JevDev recently messed something up and ITSupport had to fix the issues for him. The &lt;code&gt;ITSupport&lt;/code&gt; account has local administrator rights on the Bastion host. Our endgoal is to get to a Domain Admin account, our Bloodhoud showed how we should move. We move from the Workstation to the Bastion as this is where an instance of a Domain Admin runs.&lt;/p&gt;
+&lt;p&gt;So our attack chain looks as follows:&lt;/p&gt;
+
+&lt;img src=&#34;/img/attackchainaccounts.png&#34;  alt=&#34;Attack chain&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;Note: Since ITSupport already runs as a local admin on the Bastion when we jump over we will be automagically running as SYSTEM on the Bastion.&lt;/p&gt;
+&lt;h1 id=&#34;3-now-in-practice&#34;&gt;&lt;code&gt;3&lt;/code&gt; Now in practice&lt;/h1&gt;
+&lt;p&gt;Adversaries commonly employ a Command-and-Control (C2) framework such as CobaltStrike, BruteRatel C4, or open-source alternatives to carry out their activities. In this presentation, I showcase my custom tooling, featuring a &lt;code&gt;personally developed C2 framework&lt;/code&gt;. Please note that I won&amp;rsquo;t be sharing my framework. :)&lt;/p&gt;
+&lt;h1 id=&#34;31-foothold&#34;&gt;&lt;code&gt;3.1&lt;/code&gt; Foothold&lt;/h1&gt;
+&lt;p&gt;Threat actors may employ various methods of obtaining a foothoold (first infection) in a network. They may opt for exploiting an internet facing service, socially engineering an employee to open a malicious attachment, dropping rouge USBs outside the office, using stolen credentials to authenticate to servers or bruteforcing an internet facing service.&lt;/p&gt;
+&lt;p&gt;For this scenario we will just assume that JevDev has executed a malicious attachment and got himself infected with our malware. Therefore JevDev&amp;rsquo;s workstation will serve as our Foothold into the &lt;code&gt;Thottysploity&lt;/code&gt; Domain.&lt;/p&gt;
+&lt;p&gt;Once JevDev opened the malicious attachment, the Beacon started communicating with us and started showing itself online:
+
+&lt;img src=&#34;/img/first_foothold.png&#34;  alt=&#34;foothold&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+&lt;/p&gt;
+&lt;p&gt;Now we had our way into the network, we started quickly acquiring intel about our new Beacon. Like who is it, what permissions does it have, what groups is it in, what domain is it in and what are the DC&amp;rsquo;s.
+
+&lt;img src=&#34;/img/recon.png&#34;  alt=&#34;foothold&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+&lt;/p&gt;
+&lt;p&gt;Note: Here I have executed the following commands:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;getuid (Gets the domain and username)&lt;/li&gt;
+&lt;li&gt;whoami /priv (gets permissions of current token)&lt;/li&gt;
+&lt;li&gt;net localgroup administrators (get the local administrators of workstation)&lt;/li&gt;
+&lt;li&gt;nltest /dclist: (get the Domain Controllers for this domain)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;What can we learn from this?&lt;/p&gt;
+&lt;p&gt;Well, we know our beacon is &lt;code&gt;JevDev&lt;/code&gt;, we&amp;rsquo;re running in the domain &lt;code&gt;Thottysploity.com&lt;/code&gt; it has no special permissions so it&amp;rsquo;s just a user but JevDev for some reason is in the local administrators group for this workstation. Finally we know that this domain has two domain controllers.&lt;/p&gt;
+&lt;h1 id=&#34;32-privilege-escalation&#34;&gt;&lt;code&gt;3.2&lt;/code&gt; Privilege Escalation&lt;/h1&gt;
+&lt;p&gt;We just figured out that we&amp;rsquo;re just a normal user, from our drawing we know that there is a session for ITSupport active on this workstation. Before we can impersonate the identity of ITSupport we first need to escalate our permissions to that of a high integrity process and later the SYSTEM user. Luckily my framework can do this for us.&lt;/p&gt;
+
+&lt;img src=&#34;/img/help_command.png&#34;  alt=&#34;foothold&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;We have a few commands at our disposal, with the &lt;code&gt;elevate&lt;/code&gt; command proving to be particularly beneficial at this moment. To escalate our privileges from User to Admin, the elevate command employs the CMSTPLUA UAC Bypass. Now, what is UAC? UAC stands for User Account Control and it’s a Windows security feature designed to protect the operating system against unauthorized changes. You&amp;rsquo;ve probably encountered a UAC pop-up before prompting you to allow an application to make changes to your device. We don’t want this pesky UAC popup to happen.. so we bypass it :)&lt;/p&gt;
+
+&lt;img src=&#34;/img/uac_bypass.png&#34;  alt=&#34;uac&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;When the UAC bypass succeeds the &lt;code&gt;JevDev&lt;/code&gt; beacon in our dashboad will turn Red with lightning bolds indicating that we are now running with elevated permissions. We can proof this by issueing another &lt;code&gt;whoami /priv&lt;/code&gt;.&lt;/p&gt;
+
+&lt;img src=&#34;/img/more_perms.png&#34;  alt=&#34;uac&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;Now we&amp;rsquo;re not done yet we now need to elevate ourselfs one step further, that step being to &lt;code&gt;SYSTEM&lt;/code&gt;. Since we are running with elevated permissions this step is easy. Firstly we look at all the processes that are running on the workstation and identify what Process ID (PID) &lt;code&gt;winlogon.exe&lt;/code&gt; has.&lt;/p&gt;
+
+&lt;img src=&#34;/img/time_to_get_systems.png&#34;  alt=&#34;uac&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;We have identified that winlogon.exe has PID: &lt;code&gt;624&lt;/code&gt;. We can now use another command that this framework offers: &lt;code&gt;steal_token&lt;/code&gt;. Steal_token will allow us to clone the primary token of winlogon and apply it for our own process. This means that we can impersonate the owner of the process. If this is sounding vague right now, then don&amp;rsquo;t worry as it will get less vague.&lt;/p&gt;
+
+&lt;img src=&#34;/img/escalated_to_system.png&#34;  alt=&#34;uac&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;Before stealing the token of winlogon we are &lt;code&gt;Thottysploity.com\JevDev&lt;/code&gt; and after stealing the token we are now running as &lt;code&gt;Thottysploity.com\SYSTEM&lt;/code&gt;. In essence Windows now thinks we are the SYSTEM user and will allow us to do things as this user (without even needing a password!).&lt;/p&gt;
+&lt;h1 id=&#34;33-lateral-movement&#34;&gt;&lt;code&gt;3.3&lt;/code&gt; Lateral Movement&lt;/h1&gt;
+&lt;p&gt;Now we&amp;rsquo;re SYSTEM we can take a look on all the processes that are running on the workstation. And as luck may have it we find a process that was opened by ITSupport and forgotten to be closed. Or perhaps they left it open? who cares! let&amp;rsquo;s take his token!&lt;/p&gt;
+
+&lt;img src=&#34;/img/ITSupport_forgor_something.png&#34;  alt=&#34;uac&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;We see that the process has the PID of &lt;code&gt;3284&lt;/code&gt; so that is what we&amp;rsquo;re going to be stealing.&lt;/p&gt;
+
+&lt;img src=&#34;/img/welp_now_we_are_itsupport.png&#34;  alt=&#34;uac&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;Ladies and gentlemen, may I introduce you too our newest first line support addition; Hackerman. Anyways, enough fun let&amp;rsquo;s see where we can go. There are multiple ways to find out what servers are in the network, Bloodhound for example already showed a valid attackpath. We can also choose to query the domain for all the servers/computers. Regardless of these much easier and smarter methods, I have chosen to query the arp cache for IP addresses to later jump to these.&lt;/p&gt;
+
+&lt;img src=&#34;/img/time_to_look_around.png&#34;  alt=&#34;uac&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;This network consists of four targets;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;a Workstation (192.168.2.9)&lt;/li&gt;
+&lt;li&gt;a Fileserver  (192.168.2.100)&lt;/li&gt;
+&lt;li&gt;a Bastion     (192.168.2.101)&lt;/li&gt;
+&lt;li&gt;a DC          (192.168.2.11)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;We can try and access the drive that only local admins can access: &lt;code&gt;C$&lt;/code&gt;. If we can access this drive it means two things, we are local administrator on that server and that server is soon to be compromised.&lt;/p&gt;
+
+&lt;img src=&#34;/img/looks_like_were_admin_on_bastion.png&#34;  alt=&#34;uac&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;Let have a look what ITSupport can access, let&amp;rsquo;s try the Bastion server and the Fileserver. We seem to have access to the C$ of &lt;code&gt;192.168.2.101&lt;/code&gt;. My C2 framework provides an easy way to pivot to a target using the &lt;code&gt;jump&lt;/code&gt; command.&lt;/p&gt;
+
+&lt;img src=&#34;/img/jumped_to_basion.png&#34;  alt=&#34;uac&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;Once the jump command succeeds the Basion server will show up in our Dashboard. We can also verify this is the Bastion server by using the following commands:&lt;/p&gt;
+
+&lt;img src=&#34;/img/bastion_whoami.png&#34;  alt=&#34;uac&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;We see that we&amp;rsquo;re already running as SYSTEM thus we can skip to gathering all the processes and seeing who runs it. When we gather all the processes, we can see that SuperAdmin has logged into the Bastion through RDP. The explorer.exe process is running with PID &lt;code&gt;2800&lt;/code&gt;. This is an ideal process to steal.&lt;/p&gt;
+
+&lt;img src=&#34;/img/time_to_get_superadmin.png&#34;  alt=&#34;uac&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;Once stolen using &lt;code&gt;steal_token&lt;/code&gt; we are now impersonating the SuperAdmin user, with which we are Domain Admin.&lt;/p&gt;
+
+&lt;img src=&#34;/img/we_are_now_superadmin.png&#34;  alt=&#34;uac&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;Our goal is already achieved, getting Domain Admin. But using this account we can authenticate against all other servers in our network aswell. Let&amp;rsquo;s compromise the Fileserver and the DC for funz.&lt;/p&gt;
+
+&lt;img src=&#34;/img/seems_like_we_can_get_ore.png&#34;  alt=&#34;uac&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;As we can see our process now has access to query the files on the Filserver (192.168.100). This means we can also jump over to this server.&lt;/p&gt;
+
+&lt;img src=&#34;/img/jump.png&#34;  alt=&#34;uac&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;We see that our jump succeeded, when we refresh our dashboard we will see that the fileserver has been added.&lt;/p&gt;
+
+&lt;img src=&#34;/img/seems_like_a_fileserver.png&#34;  alt=&#34;uac&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;Now the way to take over the Domain Controller isn&amp;rsquo;t different, we take over the SuperAdmin and use it&amp;rsquo;s permissions to jump to the DC. I can show the process again, but it&amp;rsquo;s getting a little repetitive. We look for a process used by SuperAdmin on the Fileserver, steal it&amp;rsquo;s token and jump to the DC.&lt;/p&gt;
+
+&lt;img src=&#34;/img/success_jump.png&#34;  alt=&#34;uac&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;And atlast when we refresh our dashboard we see that the DC has been added, to confirm we can issue a hostname command.&lt;/p&gt;
+
+&lt;img src=&#34;/img/taken_over_dc.png&#34;  alt=&#34;uac&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;You might have noticed that I have &lt;code&gt;NOT&lt;/code&gt; entered a &lt;code&gt;SINGLE&lt;/code&gt; password, yet I managed to move myself from a Domain User all the way to a Domain Admin. This is not an exploit, or a vulnerability but rather how Windows works. The usage of stealing tokens does require administrator permissions, however Windows contains a lot of opportunities to bypass UAC. Since we now have access to the Domain Controller and better yet a Domain Admin account we can do anything that we want. We can login to any server that we want with our new account, we can also dump &lt;code&gt;krbtgt&lt;/code&gt; hash of the Domain Controller and create our own golden tickets :)&lt;/p&gt;
+&lt;h1 id=&#34;4-conclusion&#34;&gt;&lt;code&gt;4&lt;/code&gt; Conclusion&lt;/h1&gt;
+&lt;p&gt;The demonstration offered insights into the mindset, thought processes and pratical steps associated with lateral movement within the netwerk, including pivoting to other systems. This demonstration showed the escalation of privilges from a regular Domain User to Domain Admin, compromising multiple Domain accounts such as JevDev, ITSupport and SuperAdmin and compromising multiple servers within the netwerk.&lt;/p&gt;
+&lt;p&gt;Moreover, the demonstration showed the usage of my personal Command and Control (C2) framework, aswell as emphasizing the importance of considering the design of access permissions.&lt;/p&gt;
+&lt;h1 id=&#34;references&#34;&gt;References&lt;/h1&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://www.crowdstrike.com/cybersecurity-101/lateral-movement/&#34;&gt;https://www.crowdstrike.com/cybersecurity-101/lateral-movement/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://www.reddit.com/r/CompTIA/comments/p223eb/is_there_a_technical_difference_between_pivot_and/?rdt=50866&#34;&gt;https://www.reddit.com/r/CompTIA/comments/p223eb/is_there_a_technical_difference_between_pivot_and/?rdt=50866&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://blog.netwrix.com/2022/12/09/bloodhound-active-directory/&#34;&gt;https://blog.netwrix.com/2022/12/09/bloodhound-active-directory/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://learn.microsoft.com/en-us/windows/security/application-security/application-control/user-account-control/&#34;&gt;https://learn.microsoft.com/en-us/windows/security/application-security/application-control/user-account-control/&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</content>
+    </item>
+    
     <item>
       <title>Outsmarting Antivirus [Echo AC Edition]</title>
       <link>/posts/echohno/</link>
@@ -980,6 +1159,17 @@ DECIMAL       HEXADECIMAL     DESCRIPTION
 &lt;li&gt;&lt;a href=&#34;https://www.kali.org/tools/binwalk/&#34;&gt;https://www.kali.org/tools/binwalk/&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href=&#34;https://openwrt.org/inbox/toh/d-link/dir-x1860_a1&#34;&gt;https://openwrt.org/inbox/toh/d-link/dir-x1860_a1&lt;/a&gt;&lt;/li&gt;
 &lt;/ul&gt;
+</content>
+    </item>
+    
+    <item>
+      <title>W.I.P</title>
+      <link>/writeups/test/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>/writeups/test/</guid>
+      <description>Work in Progress</description>
+      <content>&lt;p&gt;Work in Progress&lt;/p&gt;
 </content>
     </item>
     
