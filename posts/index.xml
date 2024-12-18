@@ -6,17 +6,268 @@
     <description>Recent content in Posts on Thotty</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 25 Nov 2024 00:00:00 +0000</lastBuildDate><atom:link href="/posts/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Wed, 18 Dec 2024 00:00:00 +0000</lastBuildDate><atom:link href="/posts/index.xml" rel="self" type="application/rss+xml" />
     <item>
-      <title>CVE-2024-53375 TP-Link Archer, Deco and Tapo series Authenticated RCE</title>
+      <title>CVE-2024-53376 CyberPanel Authenticated RCE</title>
+      <link>/posts/cve-2024-53376/</link>
+      <pubDate>Wed, 18 Dec 2024 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/cve-2024-53376/</guid>
+      <description>1 Introduction This article shows the research, development, exploitation and responsible disclosure of a zero-day vulnerability in the CyberPanel software solution. CyberPanel is a web hosting control panel for OpenLiteSpeed and LiteSpeed Enterprise. It is alternative to cPanel or Plesk (cyberpanel.net). This vulnerability lives in version prior to 2.3.8 of CyberPanel.
+2 Terminology This chapter gives some insight into the terms used throughout this article.
+   Term Description     Burpsuite BurpSuite is a tool used to test and fix security problems in websites.</description>
+      <content>&lt;h1 id=&#34;1-introduction&#34;&gt;&lt;code&gt;1&lt;/code&gt; Introduction&lt;/h1&gt;
+&lt;p&gt;This article shows the research, development, exploitation and responsible disclosure of a zero-day vulnerability in the CyberPanel software solution. CyberPanel is a web hosting control panel for OpenLiteSpeed and LiteSpeed Enterprise. It is alternative to cPanel or Plesk (cyberpanel.net). This vulnerability lives in version prior to 2.3.8 of CyberPanel.&lt;/p&gt;
+&lt;h1 id=&#34;2-terminology&#34;&gt;&lt;code&gt;2&lt;/code&gt; Terminology&lt;/h1&gt;
+&lt;p&gt;This chapter gives some insight into the terms used throughout this article.&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Term&lt;/th&gt;
+&lt;th&gt;Description&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;Burpsuite&lt;/td&gt;
+&lt;td&gt;BurpSuite is a tool used to test and fix security problems in websites. It helps find weaknesses that hackers could exploit.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Cloud&lt;/td&gt;
+&lt;td&gt;Cloud is a service that lets you store and access data or run applications over the internet instead of on your computer&amp;rsquo;s hard drive.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Opensource&lt;/td&gt;
+&lt;td&gt;Open source is software with code that is made freely available for anyone to use, modify, and share.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Python&lt;/td&gt;
+&lt;td&gt;Python is a popular programming language used to write software. It&amp;rsquo;s easy to learn and is used for building websites, analyzing data, automating tasks, and more.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Server&lt;/td&gt;
+&lt;td&gt;A server is a powerful computer that stores data or runs services, which can be accessed by other computers over a network.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Vulnerability&lt;/td&gt;
+&lt;td&gt;A vulnerability is a weakness or flaw in a system, software, or device that can be exploited by someone.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h1 id=&#34;3-obtaining-the-platform-code&#34;&gt;&lt;code&gt;3&lt;/code&gt; Obtaining the platform code&lt;/h1&gt;
+&lt;p&gt;CyberPanel is an opensource software solution for managing cloud servers, which is hosted on Github. Github is a hosting service for software projects. The github link for CyberPanel is: &lt;a href=&#34;https://github.com/usmannasir/cyberpanel&#34;&gt;https://github.com/usmannasir/cyberpanel&lt;/a&gt;. CyberPanel provides the user with an easy-to-use installer &lt;code&gt;sh &amp;lt;(curl https://cyberpanel.net/install.sh || wget -O - https://cyberpanel.net/install.sh)&lt;/code&gt; which also allows to select the version to install.&lt;/p&gt;
+
+&lt;img src=&#34;/img/installer.png&#34;  alt=&#34;CyberPanel Installer&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;Even when using the installer for version &lt;code&gt;2.3.9&lt;/code&gt; we can choose to install another version, like the vulnerable version &lt;code&gt;2.3.7&lt;/code&gt;. To execute this installer &lt;code&gt;root&lt;/code&gt; user is required to be used, thus CyberPanel also runs as the &lt;code&gt;root&lt;/code&gt; user. The machine will restart once, when logging back into the root user the user will be greeted with the following message:&lt;/p&gt;
+
+&lt;img src=&#34;/img/motd.png&#34;  alt=&#34;CyberPanel MoTD&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;I had to hide the &lt;code&gt;Log in&lt;/code&gt; as this exposes my public IP :)&lt;/p&gt;
+&lt;p&gt;Once we now go to &lt;code&gt;localhost:8090&lt;/code&gt; we see the following:&lt;/p&gt;
+
+&lt;img src=&#34;/img/cyberpanel_login.png&#34;  alt=&#34;CyberPanel Login page&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;The admin password is funky, so I change it to something that can be easily remembered using the following command &lt;code&gt;adminPass Welkom01&lt;/code&gt;&lt;/p&gt;
+
+&lt;img src=&#34;/img/admin_pass.png&#34;  alt=&#34;CyberPanel Admin password&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;Now we can log into our CyberPanel instance using the credentials &lt;code&gt;admin:Welkom01&lt;/code&gt;. We can check the current version that is running by selecting &lt;code&gt;Version management&lt;/code&gt; and looking at the &lt;code&gt;Current version&lt;/code&gt; and &lt;code&gt;Build&lt;/code&gt;&lt;/p&gt;
+
+&lt;img src=&#34;/img/current_version.png&#34;  alt=&#34;CyberPanel Version 2.3.7&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;Here we can see that we&amp;rsquo;re running on version &lt;code&gt;2.3.7&lt;/code&gt;.&lt;/p&gt;
+&lt;h1 id=&#34;4-identifying-vulnerabilities&#34;&gt;&lt;code&gt;4&lt;/code&gt; Identifying vulnerabilities&lt;/h1&gt;
+&lt;p&gt;Since we know that the CyberPanel is written using the Python language, which can be seen from the file extensions that are used within the files.
+
+&lt;img src=&#34;/img/python_files.png&#34;  alt=&#34;CyberPanel Python&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+&lt;/p&gt;
+&lt;p&gt;Knowing that it is Python, I started hunting for any way that CyberPanel executes code on the underlying operating system. This is a way that Remote Code Execution can be achieved. A way to do this is to open a random file and searching for any indication of functions that can execute code:&lt;/p&gt;
+
+&lt;img src=&#34;/img/executioner_found.png&#34;  alt=&#34;CyberPanel Executioner&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;Here we can see that &lt;code&gt;execPath&lt;/code&gt; is being parsed to the function &lt;code&gt;ProcessUtilities.executioner&lt;/code&gt;, without making an assumption lets take a look at this &lt;code&gt;executioner&lt;/code&gt;.&lt;/p&gt;
+
+&lt;img src=&#34;/img/executioner.png&#34;  alt=&#34;CyberPanel Executioner&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;The &lt;code&gt;executioner&lt;/code&gt; function checks the current logged-in user using the &lt;code&gt;getpass.getuser()&lt;/code&gt; function. Remember that it was required to run as root? Yeah.. &lt;em&gt;spoiler alert&lt;/em&gt; it runs everything as root.&lt;/p&gt;
+&lt;p&gt;Since we know this we need to look at the &lt;code&gt;ProcessUtilities.normalExecutioner&lt;/code&gt; function:&lt;/p&gt;
+
+&lt;img src=&#34;/img/normal_executioner.png&#34;  alt=&#34;CyberPanel Normal Executioner&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;Funnily enough, if we were running as a different user that is not &lt;code&gt;None&lt;/code&gt; and not &lt;code&gt;root&lt;/code&gt; CyberPanel would still try and run it using &lt;code&gt;sudo&lt;/code&gt; permissions! Regardless, it runs as root already :)&lt;/p&gt;
+&lt;p&gt;CyberPanel uses the following functions that can all execute code on the underlying operating system:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;ProcessUtilities.executioner&lt;/li&gt;
+&lt;li&gt;ProcessUtilities.normalExecutioner&lt;/li&gt;
+&lt;li&gt;ProcessUtilities.sendCommand&lt;/li&gt;
+&lt;li&gt;ProcessUtilities.outputExecutioner&lt;/li&gt;
+&lt;li&gt;ProcessUtilities.customPoen&lt;/li&gt;
+&lt;li&gt;ProcessUtilities.BuildCommand&lt;/li&gt;
+&lt;li&gt;ProcessUtilities.popenExecutioner&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Why would you need 7 different functions that can all execute code?? I probably missed some too!&lt;/p&gt;
+&lt;p&gt;Time to actually hunt vulnerable functions.&lt;/p&gt;
+
+&lt;img src=&#34;/img/files.png&#34;  alt=&#34;CyberPanel Python files&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;CyberPanel contains &lt;code&gt;807&lt;/code&gt; Python files, ain&amp;rsquo;t no way looking through each and every one looking for a specific function.. that would take ages!&lt;/p&gt;
+&lt;p&gt;Luckily we can use &lt;code&gt;grep&lt;/code&gt; to look quickly for us, for example with the command &lt;code&gt;grep -rni &amp;quot;ProcessUtilities.popenExecutioner&amp;quot;&lt;/code&gt; (Normally you would go through all the functions, for this writeup the vulnerable function uses the popenExecutioner which is why I demo it here).&lt;/p&gt;
+
+&lt;img src=&#34;/img/instances_found.png&#34;  alt=&#34;CyberPanel Executioner instances&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;After reading, theorizing and trying functions I found an interesting candidate within the &lt;code&gt;websiteFunctions\website.py&lt;/code&gt; file. The function &lt;code&gt;submitWebsiteCreation&lt;/code&gt; used user controlled variables that were directly parsed to the exectioner without firstly being sanitized or checked.&lt;/p&gt;
+
+&lt;img src=&#34;/img/submitWebsiteCreation.png&#34;  alt=&#34;submitWebsiteCreation variables&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;The &lt;code&gt;submitWebsiteCreation&lt;/code&gt; function uses the following user defined variables:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;domain&lt;/li&gt;
+&lt;li&gt;adminEmail&lt;/li&gt;
+&lt;li&gt;phpSelection&lt;/li&gt;
+&lt;li&gt;packageName&lt;/li&gt;
+&lt;li&gt;websiteOwner&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Now not every variable is ideal for injection, the reasoning for this are &lt;code&gt;validators&lt;/code&gt;. Validators is the worst nightmare for a hacker as this checks if the input given by a user is actually valid.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;domain&lt;/code&gt; variable has a validator.&lt;/p&gt;
+
+&lt;img src=&#34;/img/validator_domain.png&#34;  alt=&#34;Domain validator&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;The &lt;code&gt;adminEmail&lt;/code&gt; variable also has a validator.&lt;/p&gt;
+
+&lt;img src=&#34;/img/validator_email.png&#34;  alt=&#34;Email validator&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;The &lt;code&gt;phpSelection&lt;/code&gt; variable however does not have a validator, added bonus is that it gets parsed directly to the executor:&lt;/p&gt;
+
+&lt;img src=&#34;/img/directly_parsed.png&#34;  alt=&#34;Non PhpSelection validator&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;Now we know we have a possible executor we need to actually prove that it is vulnerable.&lt;/p&gt;
+&lt;h1 id=&#34;5-proof-of-concept&#34;&gt;&lt;code&gt;5&lt;/code&gt; Proof-of-Concept&lt;/h1&gt;
+&lt;p&gt;It is possible to make a Python exploit script to test the vulnerability, however a quicker way (that also shows a lot more) is BurpSuite. BurpSuite allows us to see what is normally hidden from view, thus also improving the time required to write an exploit script.&lt;/p&gt;
+
+&lt;img src=&#34;/img/burpsuite_login.png&#34;  alt=&#34;BurpSuite Login to CyberPanel&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;We see a couple of interesting things, namely that the login is being made using a &lt;code&gt;POST&lt;/code&gt; request to the &lt;code&gt;/verifyLogin&lt;/code&gt; endpoint. It also encodes the login credentials using JSON as shown below.&lt;/p&gt;
+
+
+
+  &lt;div class=&#34;collapsable-code&#34;&gt;
+    &lt;input id=&#34;1&#34; type=&#34;checkbox&#34;  /&gt;
+    &lt;label for=&#34;1&#34;&gt;
+      &lt;span class=&#34;collapsable-code__language&#34;&gt;json&lt;/span&gt;
+      
+      &lt;span class=&#34;collapsable-code__toggle&#34; data-label-expand=&#34;Show&#34; data-label-collapse=&#34;Hide&#34;&gt;&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;pre class=&#34;language-json&#34; &gt;&lt;code&gt;
+   {
+     &amp;#34;username&amp;#34;:&amp;#34;admin&amp;#34;,
+     &amp;#34;password&amp;#34;:&amp;#34;Welkom01&amp;#34;,
+     &amp;#34;languageSelection&amp;#34;:&amp;#34;english&amp;#34;
+   }
+&lt;/code&gt;&lt;/pre&gt;
+  &lt;/div&gt;
+
+
+&lt;p&gt;Furthermore CyberPanel uses a &lt;code&gt;csrftoken&lt;/code&gt; embedded in the Cookie, aswell as a &lt;code&gt;X-Csrftoken&lt;/code&gt; in the header. Once we forward the requests within BurpSuite we can see we&amp;rsquo;ve now obtained a &lt;code&gt;sessionid&lt;/code&gt; which indicates that we&amp;rsquo;re authenticated with our CyberPanel instance.&lt;/p&gt;
+
+&lt;img src=&#34;/img/session_id.png&#34;  alt=&#34;CyberPanel Session&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;We can now move to the vulnerable page that calls our vulnerable function. This can be found under the &lt;code&gt;Websites&lt;/code&gt; tab and &lt;code&gt;Create Website&lt;/code&gt;&lt;/p&gt;
+
+&lt;img src=&#34;/img/calling_vuln.png&#34;  alt=&#34;CyberPanel Create Website&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;Intercepting this request using BurpSuite we get to see the following:&lt;/p&gt;
+
+&lt;img src=&#34;/img/vulnerable_function.png&#34;  alt=&#34;CyberPanel Create Website Code&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;We know the vulnerability lies within the &lt;code&gt;phpSelection&lt;/code&gt; variable, so lets see what happends when we send our exploit by adding &lt;code&gt;&#39;; touch /tmp/PoC; #&lt;/code&gt; to the end of &lt;code&gt;phpSelection&lt;/code&gt;.&lt;/p&gt;
+
+&lt;img src=&#34;/img/error.png&#34;  alt=&#34;Exploit Attempt Error&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;We see that our exploit attempt is stopped, because it filters characters like &lt;code&gt;$ &amp;amp; ( ) [ ] { } ; :&lt;/code&gt;. Lets see how the function that is responsible for this actually works. We can find this function by using &lt;code&gt;grep -rni &amp;quot;Data supplied is not accepted&amp;quot;&lt;/code&gt;:&lt;/p&gt;
+
+&lt;img src=&#34;/img/secMiddleWare.png&#34;  alt=&#34;Exploit Attempt Error&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;We can see that the file &lt;code&gt;CyberCP\secMiddleWare.py&lt;/code&gt; is responsible for stopping our exploit attempt, lets see if we can bypass this filter.&lt;/p&gt;
+
+&lt;img src=&#34;/img/SecMiddleWareInner.png&#34;  alt=&#34;Filter&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;The filter looks to be filtering every character that is used for Command Injection. There is one HUGE mistake tho.. and that is the assumption that only &lt;code&gt;POST&lt;/code&gt; can be used to submit data. &lt;code&gt;OPTIONS&lt;/code&gt; can do exactly the same.. So changing the method from &lt;code&gt;POST&lt;/code&gt; to &lt;code&gt;OPTIONS&lt;/code&gt; we get the following result:&lt;/p&gt;
+
+&lt;img src=&#34;/img/success.png&#34;  alt=&#34;Filter&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;When looking at &lt;code&gt;/tmp/&lt;/code&gt; location using &lt;code&gt;ls -la&lt;/code&gt; we see the following:&lt;/p&gt;
+
+&lt;img src=&#34;/img/file_made.png&#34;  alt=&#34;Filter&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;The owner of the file is &lt;code&gt;root&lt;/code&gt; which proves that the command is being executed as the root user. We can further prove this by issuing a &lt;code&gt;whoami&lt;/code&gt; and &lt;code&gt;id&lt;/code&gt; and outputting it to this file. Instead of &lt;code&gt;PHP 8.0&#39;; touch /tmp/PoC; #&lt;/code&gt; we use &lt;code&gt;PHP 8.0&#39;; whoami &amp;gt; /tmp/PoC &amp;amp;&amp;amp; id &amp;gt;&amp;gt; /tmp/PoC; #&lt;/code&gt;&lt;/p&gt;
+
+&lt;img src=&#34;/img/root_whoami.png&#34;  alt=&#34;Whoami&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;To do the exploit, we need the &lt;code&gt;csrftoken&lt;/code&gt; and &lt;code&gt;sessionid&lt;/code&gt;. The &lt;code&gt;csrftoken&lt;/code&gt; is the same as the &lt;code&gt;X-Csrftoken&lt;/code&gt;.&lt;/p&gt;
+
+&lt;img src=&#34;/img/authenticating.png&#34;  alt=&#34;Whoami&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;Lastly we need the headers and payload to actually exploit the vulnerability:&lt;/p&gt;
+
+&lt;img src=&#34;/img/exploit_headers.png&#34;  alt=&#34;Whoami&#34;  class=&#34;center&#34;  style=&#34;border-radius: 8px;&#34;    /&gt;
+
+
+&lt;p&gt;The full PoC code is available on: &lt;a href=&#34;https://github.com/ThottySploity/CVE-2024-53376&#34;&gt;https://github.com/ThottySploity/CVE-2024-53376&lt;/a&gt;&lt;/p&gt;
+&lt;h1 id=&#34;6-mitigation&#34;&gt;&lt;code&gt;6&lt;/code&gt; Mitigation&lt;/h1&gt;
+&lt;p&gt;To mitigate this vulnerability, the core problem needs to be handles which is the only sanitization of &lt;code&gt;POST&lt;/code&gt; requests. Ideally any method is sanitized.&lt;/p&gt;
+&lt;h1 id=&#34;7-responsible-disclosure&#34;&gt;&lt;code&gt;7&lt;/code&gt; Responsible Disclosure&lt;/h1&gt;
+&lt;ul&gt;
+&lt;li&gt;30.10.2024 - Identified vulnerability&lt;/li&gt;
+&lt;li&gt;31.10.2024 - Contacted Usman Nasir, owner of CyberPanel&lt;/li&gt;
+&lt;li&gt;02.11.2024 - Usman fixed the issue and published a fix&lt;/li&gt;
+&lt;li&gt;03.11.2024 - Requested CVE-ID from MITRE&lt;/li&gt;
+&lt;li&gt;23.11.2024 - MITRE reserved CVE-ID 2024-53376&lt;/li&gt;
+&lt;li&gt;15.12.2024 - CVE-2024-53376 published to the public&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;8-references&#34;&gt;&lt;code&gt;8&lt;/code&gt; References&lt;/h1&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://cyberpanel.net/&#34;&gt;https://cyberpanel.net/&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</content>
+    </item>
+    
+    <item>
+      <title>CVE-2024-53375 TP-Link Archer router series Authenticated RCE</title>
       <link>/posts/cve-2024-53375/</link>
       <pubDate>Mon, 25 Nov 2024 00:00:00 +0000</pubDate>
       
       <guid>/posts/cve-2024-53375/</guid>
-      <description>1 Introduction This article shows the research, development, exploitation and responsible disclosure of a zero-day vulnerability in the TP-Link Archer, Deco and Tapo series routers. Exploitation of this vulnerability can lead to a full compromise of the affected device. This vulnerability was found in an old firmware of the AXE75 router (2023), this vulnerability is however present in the most recent version of the firmware (November 4th 2024).
+      <description>1 Introduction This article shows the research, development, exploitation and responsible disclosure of a zero-day vulnerability in the TP-Link Archer router series. Exploitation of this vulnerability can lead to a full compromise of the affected device. This vulnerability was found in an old firmware of the AXE75 router (2023), this vulnerability is however present in the most recent version of the firmware (November 4th 2024).
 2 Terminology This chapter gives some insight into the terms used throughout this article.</description>
       <content>&lt;h1 id=&#34;1-introduction&#34;&gt;&lt;code&gt;1&lt;/code&gt; Introduction&lt;/h1&gt;
-&lt;p&gt;This article shows the research, development, exploitation and responsible disclosure of a zero-day vulnerability in the TP-Link Archer, Deco and Tapo series routers. Exploitation of this vulnerability can lead to a full compromise of the affected device. This vulnerability was found in an old firmware of the AXE75 router (2023), this vulnerability is however present in the most recent version of the firmware (November 4th 2024).&lt;/p&gt;
+&lt;p&gt;This article shows the research, development, exploitation and responsible disclosure of a zero-day vulnerability in the TP-Link Archer router series. Exploitation of this vulnerability can lead to a full compromise of the affected device. This vulnerability was found in an old firmware of the AXE75 router (2023), this vulnerability is however present in the most recent version of the firmware (November 4th 2024).&lt;/p&gt;
 &lt;h1 id=&#34;2-terminology&#34;&gt;&lt;code&gt;2&lt;/code&gt; Terminology&lt;/h1&gt;
 &lt;p&gt;This chapter gives some insight into the terms used throughout this article.&lt;/p&gt;
 &lt;table&gt;
